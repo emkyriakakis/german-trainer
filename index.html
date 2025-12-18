@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>German Trainer B1–C1</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 16px;
+      text-align: center;
+    }
+    main {
+      padding: 16px;
+      max-width: 800px;
+      margin: auto;
+    }
+    .lesson {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      animation: fadeIn 0.5s ease;
+    }
+    button {
+      padding: 10px 14px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    .correct {
+      color: green;
+      font-weight: bold;
+    }
+    .wrong {
+      color: red;
+      font-weight: bold;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🇩🇪 German Trainer</h1>
+    <p>B1 → B2 → C1 • Daily Practice</p>
+  </header>
+
+  <main>
+    <div class="lesson" id="lessonBox">
+      <h2 id="level">Level: B1</h2>
+      <p id="question">Ich ___ mehr Deutsch lernen.</p>
+
+      <input id="answer" type="text" placeholder="Type your answer…" />
+      <br/>
+      <button onclick="checkAnswer()">Check</button>
+
+      <p id="feedback"></p>
+
+      <button onclick="nextExercise()">Next exercise</button>
+    </div>
+  </main>
+
+  <script>
+    const exercises = [
+      { level: "B1", q: "Ich ___ mehr Deutsch lernen.", a: "möchte" },
+      { level: "B1", q: "Er hat Angst, ___ er zu spät kommt.", a: "dass" },
+      { level: "B2", q: "Wenn ich mehr Zeit ___, würde ich reisen.", a: "hätte" },
+      { level: "B2", q: "Das ist der Mann, ___ Auto gestohlen wurde.", a: "dessen" },
+      { level: "C1", q: "Er spricht, als ___ er alles wüsste.", a: "ob" },
+      { level: "C1", q: "Je mehr man übt, ___ besser wird man.", a: "desto" }
+    ];
+
+    let current = 0;
+
+    function checkAnswer() {
+      const user = document.getElementById("answer").value.trim();
+      const correct = exercises[current].a;
+      const feedback = document.getElementById("feedback");
+
+      if (user === correct) {
+        feedback.innerHTML = "✔ Correct!";
+        feedback.className = "correct";
+      } else {
+        feedback.innerHTML = `✘ Wrong. Correct answer: <b>${correct}</b>`;
+        feedback.className = "wrong";
+      }
+    }
+
+    function nextExercise() {
+      current = (current + 1) % exercises.length;
+      document.getElementById("level").innerText = "Level: " + exercises[current].level;
+      document.getElementById("question").innerText = exercises[current].q;
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").innerText = "";
+    }
+  </script>
+</body>
+</html>
