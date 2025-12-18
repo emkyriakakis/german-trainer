@@ -81,38 +81,138 @@
   </main>
 
   <script>
-    const exercises = [
-      { level: "B1", q: "Ich ___ mehr Deutsch lernen.", a: "möchte" },
-      { level: "B1", q: "Er hat Angst, ___ er zu spät kommt.", a: "dass" },
-      { level: "B2", q: "Wenn ich mehr Zeit ___, würde ich reisen.", a: "hätte" },
-      { level: "B2", q: "Das ist der Mann, ___ Auto gestohlen wurde.", a: "dessen" },
-      { level: "C1", q: "Er spricht, als ___ er alles wüsste.", a: "ob" },
-      { level: "C1", q: "Je mehr man übt, ___ besser wird man.", a: "desto" }
-    ];
+const lessons = [
+  {
+    type: "short",
+    level: "B1",
+    topic: "Wünsche",
+    question: "Ich ___ mehr Deutsch lernen.",
+    answer: "möchte"
+  },
+  {
+    type: "short",
+    level: "B1",
+    topic: "Nebensätze",
+    question: "Er bleibt zu Hause, ___ es regnet.",
+    answer: "weil"
+  },
+  {
+    type: "short",
+    level: "B1",
+    topic: "Vergangenheit",
+    question: "Gestern ___ ich lange gearbeitet.",
+    answer: "habe"
+  },
+  {
+    type: "short",
+    level: "B1",
+    topic: "Präpositionen",
+    question: "Ich warte ___ den Bus.",
+    answer: "auf"
+  },
+  {
+    type: "short",
+    level: "B1",
+    topic: "Artikel",
+    question: "Das ist ___ gute Idee.",
+    answer: "eine"
+  },
 
-    let current = 0;
+  {
+    type: "deep",
+    level: "B1",
+    topic: "Alltag & Arbeit",
+    text: `
+      Anna arbeitet in einem Büro. Sie steht jeden Tag um sieben Uhr auf
+      und fährt mit dem Zug zur Arbeit. Wenn sie mehr Zeit hätte,
+      würde sie gerne Deutschkurse besuchen.
+    `,
+    vocab: [
+      ["arbeiten", "to work"],
+      ["der Alltag", "daily life"],
+      ["der Kurs", "course"]
+    ],
+    questions: [
+      { q: "Wo arbeitet Anna?", a: "in einem Büro" },
+      { q: "Wann steht sie auf?", a: "um sieben Uhr" },
+      { q: "Was würde sie gerne tun?", a: "Deutschkurse besuchen" }
+    ]
+  }
+];
 
-    function checkAnswer() {
-      const user = document.getElementById("answer").value.trim();
-      const correct = exercises[current].a;
-      const feedback = document.getElementById("feedback");
+let index = 0;
 
-      if (user === correct) {
-        feedback.innerHTML = "✔ Correct!";
-        feedback.className = "correct";
-      } else {
-        feedback.innerHTML = `✘ Wrong. Correct answer: <b>${correct}</b>`;
-        feedback.className = "wrong";
-      }
-    }
+function renderLesson() {
+  const box = document.getElementById("lessonBox");
+  const lesson = lessons[index];
 
-    function nextExercise() {
-      current = (current + 1) % exercises.length;
-      document.getElementById("level").innerText = "Level: " + exercises[current].level;
-      document.getElementById("question").innerText = exercises[current].q;
-      document.getElementById("answer").value = "";
-      document.getElementById("feedback").innerText = "";
-    }
-  </script>
+  if (lesson.type === "short") {
+    box.innerHTML = `
+      <h2>${lesson.level} – ${lesson.topic}</h2>
+      <p>${lesson.question}</p>
+      <input id="answer" placeholder="Type your answer"/>
+      <br/>
+      <button onclick="checkShort()">Check</button>
+      <p id="feedback"></p>
+      <button onclick="nextLesson()">Next</button>
+    `;
+  } else {
+    box.innerHTML = `
+      <h2>${lesson.level} – Deep lesson: ${lesson.topic}</h2>
+      <p>${lesson.text}</p>
+
+      <h3>Vocabulary</h3>
+      <ul>
+        ${lesson.vocab.map(v => `<li><b>${v[0]}</b> – ${v[1]}</li>`).join("")}
+      </ul>
+
+      <h3>Questions</h3>
+      ${lesson.questions.map((q, i) =>
+        `<p>${q.q}<br/>
+        <input id="q${i}" placeholder="Your answer"/></p>`
+      ).join("")}
+
+      <button onclick="checkDeep()">Check answers</button>
+      <p id="feedback"></p>
+      <button onclick="nextLesson()">Continue</button>
+    `;
+  }
+}
+
+function checkShort() {
+  const user = document.getElementById("answer").value.trim();
+  const correct = lessons[index].answer;
+  const fb = document.getElementById("feedback");
+
+  if (user === correct) {
+    fb.innerHTML = "✔ Correct";
+    fb.style.color = "green";
+  } else {
+    fb.innerHTML = `✘ Correct answer: <b>${correct}</b>`;
+    fb.style.color = "red";
+  }
+}
+
+function checkDeep() {
+  const lesson = lessons[index];
+  let correct = 0;
+
+  lesson.questions.forEach((q, i) => {
+    const val = document.getElementById("q" + i).value.toLowerCase();
+    if (val.includes(q.a)) correct++;
+  });
+
+  document.getElementById("feedback").innerHTML =
+    `You answered ${correct} / ${lesson.questions.length} correctly.`;
+}
+
+function nextLesson() {
+  index = (index + 1) % lessons.length;
+  renderLesson();
+}
+
+renderLesson();
+</script>
+
 </body>
 </html>
