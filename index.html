@@ -1,323 +1,135 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>German Trainer B1–C1</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>German Trainer B1–C1</title>
 
-  <style>
+<style>
 :root {
-  --bg: #f4f6f8;
-  --card: #ffffff;
-  --text: #222;
-  --primary: #2563eb;
-  --correct: #16a34a;
-  --wrong: #dc2626;
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --text:#222;
+  --primary:#2563eb;
+  --correct:#16a34a;
+  --wrong:#dc2626;
 }
 
 body.dark {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --text: #e5e7eb;
-  --primary: #60a5fa;
+  --bg:#0f172a;
+  --card:#1e293b;
+  --text:#e5e7eb;
+  --primary:#60a5fa;
 }
 
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  transition: background 0.3s, color 0.3s;
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  transition:background .3s,color .3s;
 }
 
 header {
-  background: var(--primary);
-  color: white;
-  padding: 16px;
-  text-align: center;
+  background:var(--primary);
+  color:white;
+  padding:16px;
+  text-align:center;
 }
 
 main {
-  max-width: 800px;
-  margin: auto;
-  padding: 16px;
+  max-width:800px;
+  margin:auto;
+  padding:16px;
 }
 
 .lesson {
-  background: var(--card);
-  padding: 16px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  animation: slideIn 0.4s ease;
+  background:var(--card);
+  padding:16px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+}
+
+.animate {
+  animation:slideIn .4s ease;
+}
+
+.fade {
+  animation:fadeIn .3s ease;
+}
+
+.success {
+  animation:pulse .4s ease;
 }
 
 button {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  margin-top: 10px;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: transform 0.15s, opacity 0.15s;
+  background:var(--primary);
+  color:white;
+  border:none;
+  padding:10px 14px;
+  margin-top:10px;
+  border-radius:6px;
+  font-size:16px;
+  cursor:pointer;
 }
 
-button:hover {
-  transform: scale(1.03);
-  opacity: 0.9;
-}
+button:hover { opacity:.9 }
 
 input {
-  padding: 8px;
-  width: 90%;
-  max-width: 300px;
-  margin-top: 6px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-#feedback {
-  margin-top: 10px;
-  animation: fadeIn 0.3s ease;
+  padding:8px;
+  width:90%;
+  max-width:300px;
+  margin-top:6px;
+  border-radius:6px;
+  border:1px solid #ccc;
 }
 
 .toggle {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(255,255,255,0.2);
+  position:absolute;
+  top:12px;
+  right:12px;
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity:0; transform:translateX(20px); }
+  to { opacity:1; transform:translateX(0); }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity:0 }
+  to { opacity:1 }
+}
+
+@keyframes pulse {
+  0% { transform:scale(1) }
+  50% { transform:scale(1.05) }
+  100% { transform:scale(1) }
 }
 </style>
-
 </head>
 
 <body>
-  <button class="toggle" onclick="toggleDark()">🌙</button>
-  <header>
-    <h1>🇩🇪 German Trainer</h1>
-    <p>B1 → B2 → C1 • Daily Practice</p>
-  </header>
 
-  <main>
-    <div class="lesson" id="lessonBox">
-      <h2 id="level">Level: B1</h2>
-      <p id="question">Ich ___ mehr Deutsch lernen.</p>
+<button class="toggle" onclick="toggleDark()">🌙</button>
 
-      <input id="answer" type="text" placeholder="Type your answer…" />
-      <br/>
-      <button onclick="checkAnswer()">Check</button>
+<header>
+  <h1>🇩🇪 German Trainer</h1>
+  <p>B1 → B2 → C1</p>
+</header>
 
-      <p id="feedback"></p>
+<main>
 
-      <button onclick="nextExercise()">Next exercise</button>
-    </div>
-  </main>
+<div style="margin-bottom:16px">
+  <b>Progress</b>
+  <div style="background:#ddd;border-radius:6px;overflow:hidden">
+    <div id="progressBar" style="height:12px;width:0%;background:#16a34a"></div>
+  </div>
+  <div id="stats"></div>
+  <div id="streak">🔥 Streak: 0 days</div>
+</div>
 
- <script>
-const lessons = [
-  { type: "short", level: "B1", topic: "Wünsche", question: "Ich ___ mehr Deutsch lernen.", answer: "möchte" },
-  { type: "short", level: "B1", topic: "Nebensätze", question: "Er bleibt zu Hause, ___ es regnet.", answer: "weil" },
+<div class="lesson" id="lessonBox"></div>
 
-  {
-    type: "vocab",
-    level: "B1",
-    topic: "Alltag – Wortschatz",
-    pairs: [
-      ["arbeiten", "to work"],
-      ["der Alltag", "daily life"],
-      ["der Kurs", "course"],
-      ["die Pause", "break"]
-    ]
-  },
+</main>
 
-  { type: "short", level: "B1", topic: "Vergangenheit", question: "Gestern ___ ich lange gearbeitet.", answer: "habe" },
-  { type: "short", level: "B1", topic: "Präpositionen", question: "Ich warte ___ den Bus.", answer: "auf" },
-
-  {
-    type: "deep",
-    level: "B1",
-    topic: "Alltag & Arbeit",
-    text: `
-      Anna arbeitet in einem Büro. Sie steht jeden Tag um sieben Uhr auf
-      und fährt mit dem Zug zur Arbeit. Wenn sie mehr Zeit hätte,
-      würde sie gerne Deutschkurse besuchen.
-    `,
-    vocab: [
-      ["arbeiten", "to work"],
-      ["der Alltag", "daily life"],
-      ["der Kurs", "course"]
-    ],
-    questions: [
-      { q: "Wo arbeitet Anna?", a: "in einem Büro" },
-      { q: "Wann steht sie auf?", a: "um sieben Uhr" },
-      { q: "Was würde sie gerne tun?", a: "Deutschkurse besuchen" }
-    ]
-  }
-];
-
-let index = 0;
-let draggedWord = null;
-
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
-}
-
-function renderLesson() {
-  const box = document.getElementById("lessonBox");
-  const lesson = lessons[index];
-
-  if (lesson.type === "short") {
-    box.innerHTML = `
-      <h2>${lesson.level} – ${lesson.topic}</h2>
-      <p>${lesson.question}</p>
-      <input id="answer" placeholder="Type your answer" onkeydown="handleEnter(event)"/>
-      <br/>
-      <button onclick="checkShort()">Check</button>
-      <p id="feedback"></p>
-      <button onclick="nextLesson()">Next</button>
-    `;
-  }
-
-  else if (lesson.type === "vocab") {
-    const left = shuffle([...lesson.pairs]);
-    const right = shuffle([...lesson.pairs.map(p => p[1])]);
-
-    box.innerHTML = `
-      <h2>${lesson.level} – Vocabulary matching</h2>
-      <p>Drag the German words to the correct English meaning</p>
-
-      <div style="display:flex; gap:20px;">
-        <div>
-          ${left.map(p => `
-            <div draggable="true"
-                 ondragstart="draggedWord='${p[0]}'"
-                 style="padding:8px;margin:6px;background:#e5e7eb;border-radius:6px;cursor:grab;">
-              ${p[0]}
-            </div>`).join("")}
-        </div>
-
-        <div>
-          ${right.map(r => `
-            <div ondragover="event.preventDefault()"
-                 ondrop="checkDrop('${r}', this)"
-                 style="padding:8px;margin:6px;background:#fef3c7;border-radius:6px;min-width:150px;">
-              ${r}
-            </div>`).join("")}
-        </div>
-      </div>
-
-      <p id="feedback"></p>
-      <button onclick="nextLesson()">Continue</button>
-    `;
-  }
-
-  else {
-    box.innerHTML = `
-      <h2>${lesson.level} – Deep lesson: ${lesson.topic}</h2>
-      <p>${lesson.text}</p>
-
-      <h3>Vocabulary</h3>
-      <ul>
-        ${lesson.vocab.map(v => `<li><b>${v[0]}</b> – ${v[1]}</li>`).join("")}
-      </ul>
-
-      <h3>Questions</h3>
-      ${lesson.questions.map((q, i) =>
-        `<p>${q.q}<br/>
-         <input id="q${i}" onkeydown="handleEnter(event)"/></p>`
-      ).join("")}
-
-      <button onclick="checkDeep()">Check answers</button>
-      <p id="feedback"></p>
-      <button onclick="nextLesson()">Continue</button>
-    `;
-  }
-}
-
-function handleEnter(e) {
-  if (e.key === "Enter") {
-    if (lessons[index].type === "short") checkShort();
-    else if (lessons[index].type === "deep") checkDeep();
-  }
-}
-
-function checkShort() {
-  const user = document.getElementById("answer").value.trim();
-  const correct = lessons[index].answer;
-  const fb = document.getElementById("feedback");
-
-  if (user === correct) {
-    fb.innerHTML = "✔ Correct!";
-    fb.style.color = "green";
-  } else {
-    fb.innerHTML = `✘ Correct answer: <b>${correct}</b>`;
-    fb.style.color = "red";
-  }
-}
-
-function checkDrop(english, el) {
-  const lesson = lessons[index];
-  const pair = lesson.pairs.find(p => p[1] === english);
-
-  if (pair && pair[0] === draggedWord) {
-    el.style.background = "#bbf7d0";
-    el.innerHTML = "✔ " + english;
-    document.getElementById("feedback").innerHTML = "Correct match!";
-    document.getElementById("feedback").style.color = "green";
-  } else {
-    el.style.background = "#fecaca";
-    document.getElementById("feedback").innerHTML =
-      `Wrong. Correct: <b>${pair[0]} → ${pair[1]}</b>`;
-    document.getElementById("feedback").style.color = "red";
-  }
-}
-
-function checkDeep() {
-  const lesson = lessons[index];
-  let out = "", score = 0;
-
-  lesson.questions.forEach((q, i) => {
-    const val = document.getElementById("q"+i).value.toLowerCase();
-    if (val.includes(q.a.toLowerCase())) {
-      out += `<p style="color:green">✔ ${q.q}</p>`;
-      score++;
-    } else {
-      out += `<p style="color:red">✘ ${q.q}<br/>Correct: <b>${q.a}</b></p>`;
-    }
-  });
-
-  document.getElementById("feedback").innerHTML =
-    out + `<p><b>Score: ${score}/${lesson.questions.length}</b></p>`;
-}
-
-function nextLesson() {
-  index = (index + 1) % lessons.length;
-  renderLesson();
-}
-
-renderLesson();
-   function toggleDark() {
-  document.body.classList.toggle("dark");
-  localStorage.setItem("dark",
-    document.body.classList.contains("dark"));
-}
-
-if (localStorage.getItem("dark") === "true") {
-  document.body.classList.add("dark");
-}
-
-</script>
-
-</body>
-</html>
+<script>
