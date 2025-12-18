@@ -129,24 +129,37 @@ input {
 </main>
 
 <script>
-const lessons = [
-  { type:"short", level:"B1", topic:"Wünsche", question:"Ich ___ mehr Deutsch lernen.", answer:"möchte" },
-  { type:"short", level:"B1", topic:"Nebensatz", question:"Er bleibt zu Hause, ___ es regnet.", answer:"weil" },
-  { type:"short", level:"B1", topic:"Vergangenheit", question:"Gestern ___ ich gearbeitet.", answer:"habe" },
+const grammarPool = {
+  B1: [
+    { q: "Ich ___ mehr Deutsch lernen.", a: "möchte", topic: "Wünsche" },
+    { q: "Er bleibt zu Hause, ___ es regnet.", a: "weil", topic: "Nebensatz" },
+    { q: "Gestern ___ ich lange gearbeitet.", a: "habe", topic: "Perfekt" }
+  ],
+  B2: [
+    { q: "Wenn ich mehr Zeit ___, würde ich reisen.", a: "hätte", topic: "Konjunktiv II" },
+    { q: "Das ist der Mann, ___ ich geholfen habe.", a: "dem", topic: "Relativsatz" }
+  ],
+  C1: [
+    { q: "Hätte man früher reagiert, ___ der Schaden kleiner gewesen.", a: "wäre", topic: "Inversion" }
+  ]
+};
 
-  {
-    type:"deep",
-    level:"B1",
-    topic:"Alltag",
-    text:"Anna arbeitet in einem Büro. Sie steht um sieben Uhr auf.",
-    questions:[
-      {q:"Wo arbeitet Anna?", a:"Büro"},
-      {q:"Wann steht sie auf?", a:"sieben"}
-    ]
-  }
-];
+const levels = ["B1", "B2", "C1"];
 
-let index = 0;
+function generateLesson() {
+  const level = levels[Math.floor(Math.random() * levels.length)];
+  const pool = grammarPool[level];
+  const item = pool[Math.floor(Math.random() * pool.length)];
+
+  return {
+    type: "short",
+    level,
+    topic: item.topic,
+    question: item.q,
+    answer: item.a
+  };
+}
+
 
 let stats = JSON.parse(localStorage.getItem("stats")) || {
   total:0, correct:0, lastDate:null, streak:0
@@ -186,7 +199,7 @@ function renderLesson() {
   void box.offsetWidth; // FORCE reflow
   box.classList.add("animate");
 
-  const l = lessons[index];
+const l = currentLesson;
 
   if (l.type === "short") {
     box.innerHTML = `
@@ -242,10 +255,11 @@ function checkDeep() {
 }
 
 function nextLesson() {
-  index = (index+1)%lessons.length;
+  currentLesson = generateLesson();
   renderLesson();
 }
-
+let currentLesson = generateLesson();
+  
 function toggleDark() {
   document.body.classList.toggle("dark");
   localStorage.setItem("dark", document.body.classList.contains("dark"));
