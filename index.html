@@ -7,103 +7,98 @@
 
 <style>
 :root {
-  --bg:#f4f6f8;
-  --card:#ffffff;
-  --text:#222;
-  --primary:#2563eb;
-  --correct:#16a34a;
-  --wrong:#dc2626;
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --text: #222;
+  --primary: #2563eb;
+  --correct: #16a34a;
+  --wrong: #dc2626;
 }
 
 body.dark {
-  --bg:#0f172a;
-  --card:#1e293b;
-  --text:#e5e7eb;
-  --primary:#60a5fa;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #e5e7eb;
+  --primary: #60a5fa;
 }
 
 body {
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  transition:background .3s,color .3s;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
 }
 
 header {
-  background:var(--primary);
-  color:white;
-  padding:16px;
-  text-align:center;
+  background: var(--primary);
+  color: white;
+  padding: 16px;
+  text-align: center;
 }
 
 main {
-  max-width:800px;
-  margin:auto;
-  padding:16px;
+  max-width: 800px;
+  margin: auto;
+  padding: 16px;
 }
 
 .lesson {
-  background:var(--card);
-  padding:16px;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,.1);
+  background: var(--card);
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .animate {
-  animation:slideIn .4s ease;
-}
-
-.fade {
-  animation:fadeIn .3s ease;
-}
-
-.success {
-  animation:pulse .4s ease;
+  animation: slideIn 0.4s ease;
 }
 
 button {
-  background:var(--primary);
-  color:white;
-  border:none;
-  padding:10px 14px;
-  margin-top:10px;
-  border-radius:6px;
-  font-size:16px;
-  cursor:pointer;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  margin-top: 10px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
 }
 
-button:hover { opacity:.9 }
+button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
 
 input {
-  padding:8px;
-  width:90%;
-  max-width:300px;
-  margin-top:6px;
-  border-radius:6px;
-  border:1px solid #ccc;
+  padding: 8px;
+  width: 90%;
+  max-width: 300px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+#feedback {
+  margin-top: 10px;
+  animation: fadeIn 0.3s ease;
 }
 
 .toggle {
-  position:absolute;
-  top:12px;
-  right:12px;
+  position: fixed;
+  top: 12px;
+  right: 12px;
 }
 
 @keyframes slideIn {
-  from { opacity:0; transform:translateX(20px); }
-  to { opacity:1; transform:translateX(0); }
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes fadeIn {
-  from { opacity:0 }
-  to { opacity:1 }
-}
-
-@keyframes pulse {
-  0% { transform:scale(1) }
-  50% { transform:scale(1.05) }
-  100% { transform:scale(1) }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>
 </head>
@@ -114,14 +109,15 @@ input {
 
 <header>
   <h1>🇩🇪 German Trainer</h1>
-  <p>B1 → B2 → C1</p>
+  <p>B1 → C1 • Practice</p>
 </header>
 
 <main>
 
-<div style="margin-bottom:16px">
+<!-- PROGRESS -->
+<div style="margin-bottom:16px;">
   <b>Progress</b>
-  <div style="background:#ddd;border-radius:6px;overflow:hidden">
+  <div style="background:#ddd;border-radius:6px;overflow:hidden;">
     <div id="progressBar" style="height:12px;width:0%;background:#16a34a"></div>
   </div>
   <div id="stats"></div>
@@ -133,3 +129,133 @@ input {
 </main>
 
 <script>
+const lessons = [
+  { type:"short", level:"B1", topic:"Wünsche", question:"Ich ___ mehr Deutsch lernen.", answer:"möchte" },
+  { type:"short", level:"B1", topic:"Nebensatz", question:"Er bleibt zu Hause, ___ es regnet.", answer:"weil" },
+  { type:"short", level:"B1", topic:"Vergangenheit", question:"Gestern ___ ich gearbeitet.", answer:"habe" },
+
+  {
+    type:"deep",
+    level:"B1",
+    topic:"Alltag",
+    text:"Anna arbeitet in einem Büro. Sie steht um sieben Uhr auf.",
+    questions:[
+      {q:"Wo arbeitet Anna?", a:"Büro"},
+      {q:"Wann steht sie auf?", a:"sieben"}
+    ]
+  }
+];
+
+let index = 0;
+
+let stats = JSON.parse(localStorage.getItem("stats")) || {
+  total:0, correct:0, lastDate:null, streak:0
+};
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function updateStreak() {
+  const t = today();
+  if (stats.lastDate === t) return;
+  stats.streak = (stats.lastDate === new Date(Date.now()-86400000).toISOString().split("T")[0])
+    ? stats.streak+1 : 1;
+  stats.lastDate = t;
+}
+
+function saveStats() {
+  localStorage.setItem("stats", JSON.stringify(stats));
+  renderStats();
+}
+
+function renderStats() {
+  const pct = stats.total ? Math.round(stats.correct/stats.total*100) : 0;
+  progressBar.style.width = pct+"%";
+  statsEl.innerText = `Correct ${stats.correct}/${stats.total}`;
+  streak.innerText = `🔥 Streak: ${stats.streak} days`;
+}
+
+const progressBar = document.getElementById("progressBar");
+const statsEl = document.getElementById("stats");
+const streak = document.getElementById("streak");
+
+function renderLesson() {
+  const box = document.getElementById("lessonBox");
+  box.classList.remove("animate");
+  void box.offsetWidth; // FORCE reflow
+  box.classList.add("animate");
+
+  const l = lessons[index];
+
+  if (l.type === "short") {
+    box.innerHTML = `
+      <h3>${l.level} – ${l.topic}</h3>
+      <p>${l.question}</p>
+      <input id="answer" onkeydown="if(event.key==='Enter')checkShort()">
+      <br>
+      <button onclick="checkShort()">Check</button>
+      <p id="feedback"></p>
+      <button onclick="nextLesson()">Next</button>
+    `;
+  } else {
+    box.innerHTML = `
+      <h3>${l.level} – ${l.topic}</h3>
+      <p>${l.text}</p>
+      ${l.questions.map((q,i)=>`
+        <p>${q.q}<br><input id="q${i}"></p>
+      `).join("")}
+      <button onclick="checkDeep()">Check</button>
+      <p id="feedback"></p>
+      <button onclick="nextLesson()">Next</button>
+    `;
+  }
+}
+
+function checkShort() {
+  updateStreak();
+  stats.total++;
+  const user = answer.value.trim();
+  const fb = feedback;
+  if (user === lessons[index].answer) {
+    stats.correct++;
+    fb.innerHTML = "✔ Correct!";
+    fb.style.color="green";
+  } else {
+    fb.innerHTML = `✘ Correct: <b>${lessons[index].answer}</b>`;
+    fb.style.color="red";
+  }
+  saveStats();
+}
+
+function checkDeep() {
+  updateStreak();
+  let score=0;
+  lessons[index].questions.forEach((q,i)=>{
+    if (document.getElementById("q"+i).value.toLowerCase().includes(q.a.toLowerCase()))
+      score++;
+  });
+  stats.total += lessons[index].questions.length;
+  stats.correct += score;
+  feedback.innerHTML = `Score: ${score}/${lessons[index].questions.length}`;
+  saveStats();
+}
+
+function nextLesson() {
+  index = (index+1)%lessons.length;
+  renderLesson();
+}
+
+function toggleDark() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("dark", document.body.classList.contains("dark"));
+}
+
+if (localStorage.getItem("dark")==="true") document.body.classList.add("dark");
+
+renderStats();
+renderLesson();
+</script>
+
+</body>
+</html>
