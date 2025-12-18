@@ -80,13 +80,25 @@
     </div>
   </main>
 
-  <script>
+ <script>
 const lessons = [
   { type: "short", level: "B1", topic: "Wünsche", question: "Ich ___ mehr Deutsch lernen.", answer: "möchte" },
   { type: "short", level: "B1", topic: "Nebensätze", question: "Er bleibt zu Hause, ___ es regnet.", answer: "weil" },
+
+  {
+    type: "vocab",
+    level: "B1",
+    topic: "Alltag – Wortschatz",
+    pairs: [
+      ["arbeiten", "to work"],
+      ["der Alltag", "daily life"],
+      ["der Kurs", "course"],
+      ["die Pause", "break"]
+    ]
+  },
+
   { type: "short", level: "B1", topic: "Vergangenheit", question: "Gestern ___ ich lange gearbeitet.", answer: "habe" },
   { type: "short", level: "B1", topic: "Präpositionen", question: "Ich warte ___ den Bus.", answer: "auf" },
-  { type: "short", level: "B1", topic: "Artikel", question: "Das ist ___ gute Idee.", answer: "eine" },
 
   {
     type: "deep",
@@ -111,6 +123,11 @@ const lessons = [
 ];
 
 let index = 0;
+let draggedWord = null;
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
 
 function renderLesson() {
   const box = document.getElementById("lessonBox");
@@ -126,7 +143,42 @@ function renderLesson() {
       <p id="feedback"></p>
       <button onclick="nextLesson()">Next</button>
     `;
-  } else {
+  }
+
+  else if (lesson.type === "vocab") {
+    const left = shuffle([...lesson.pairs]);
+    const right = shuffle([...lesson.pairs.map(p => p[1])]);
+
+    box.innerHTML = `
+      <h2>${lesson.level} – Vocabulary matching</h2>
+      <p>Drag the German words to the correct English meaning</p>
+
+      <div style="display:flex; gap:20px;">
+        <div>
+          ${left.map(p => `
+            <div draggable="true"
+                 ondragstart="draggedWord='${p[0]}'"
+                 style="padding:8px;margin:6px;background:#e5e7eb;border-radius:6px;cursor:grab;">
+              ${p[0]}
+            </div>`).join("")}
+        </div>
+
+        <div>
+          ${right.map(r => `
+            <div ondragover="event.preventDefault()"
+                 ondrop="checkDrop('${r}', this)"
+                 style="padding:8px;margin:6px;background:#fef3c7;border-radius:6px;min-width:150px;">
+              ${r}
+            </div>`).join("")}
+        </div>
+      </div>
+
+      <p id="feedback"></p>
+      <button onclick="nextLesson()">Continue</button>
+    `;
+  }
+
+  else {
     box.innerHTML = `
       <h2>${lesson.level} – Deep lesson: ${lesson.topic}</h2>
       <p>${lesson.text}</p>
@@ -139,7 +191,7 @@ function renderLesson() {
       <h3>Questions</h3>
       ${lesson.questions.map((q, i) =>
         `<p>${q.q}<br/>
-         <input id="q${i}" placeholder="Your answer" onkeydown="handleEnter(event)"/></p>`
+         <input id="q${i}" onkeydown="handleEnter(event)"/></p>`
       ).join("")}
 
       <button onclick="checkDeep()">Check answers</button>
@@ -149,13 +201,10 @@ function renderLesson() {
   }
 }
 
-function handleEnter(event) {
-  if (event.key === "Enter") {
-    if (lessons[index].type === "short") {
-      checkShort();
-    } else {
-      checkDeep();
-    }
+function handleEnter(e) {
+  if (e.key === "Enter") {
+    if (lessons[index].type === "short") checkShort();
+    else if (lessons[index].type === "deep") checkDeep();
   }
 }
 
@@ -168,28 +217,44 @@ function checkShort() {
     fb.innerHTML = "✔ Correct!";
     fb.style.color = "green";
   } else {
-    fb.innerHTML = `✘ Wrong.<br/>Correct answer: <b>${correct}</b>`;
+    fb.innerHTML = `✘ Correct answer: <b>${correct}</b>`;
     fb.style.color = "red";
+  }
+}
+
+function checkDrop(english, el) {
+  const lesson = lessons[index];
+  const pair = lesson.pairs.find(p => p[1] === english);
+
+  if (pair && pair[0] === draggedWord) {
+    el.style.background = "#bbf7d0";
+    el.innerHTML = "✔ " + english;
+    document.getElementById("feedback").innerHTML = "Correct match!";
+    document.getElementById("feedback").style.color = "green";
+  } else {
+    el.style.background = "#fecaca";
+    document.getElementById("feedback").innerHTML =
+      `Wrong. Correct: <b>${pair[0]} → ${pair[1]}</b>`;
+    document.getElementById("feedback").style.color = "red";
   }
 }
 
 function checkDeep() {
   const lesson = lessons[index];
-  let output = "";
-  let correctCount = 0;
+  let out = "", score = 0;
 
   lesson.questions.forEach((q, i) => {
-    const val = document.getElementById("q" + i).value.toLowerCase();
+    const val = document.getElementById("q"+i).value.toLowerCase();
     if (val.includes(q.a.toLowerCase())) {
-      output += `<p style="color:green">✔ ${q.q}</p>`;
-      correctCount++;
+      out += `<p style="color:green">✔ ${q.q}</p>`;
+      score++;
     } else {
-      output += `<p style="color:red">✘ ${q.q}<br/>Correct answer: <b>${q.a}</b></p>`;
+      out += `<p style="color:red">✘ ${q.q}<br/>Correct: <b>${q.a}</b></p>`;
     }
   });
 
   document.getElementById("feedback").innerHTML =
-    output + `<p><b>Score: ${correctCount} / ${lesson.questions.length}</b></p>`;
+    out + `<p><b>Score: ${score}/${lesson.questions.length}</b></p>`;
 }
 
 function nextLesson() {
@@ -199,7 +264,6 @@ function nextLesson() {
 
 renderLesson();
 </script>
-
 
 </body>
 </html>
