@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>German Trainer B1–C1</title>
 
 <style>
@@ -27,7 +27,6 @@ body {
   font-family: Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  transition: background 0.3s, color 0.3s;
 }
 
 header {
@@ -48,9 +47,6 @@ main {
   padding: 16px;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.animate {
   animation: slideIn 0.4s ease;
 }
 
@@ -63,21 +59,6 @@ button {
   border-radius: 6px;
   font-size: 16px;
   cursor: pointer;
-  transition: transform 0.15s, opacity 0.15s;
-}
-
-button:hover {
-  transform: scale(1.05);
-  opacity: 0.9;
-}
-
-input {
-  padding: 8px;
-  width: 90%;
-  max-width: 300px;
-  margin-top: 6px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
 }
 
 #feedback {
@@ -86,13 +67,13 @@ input {
 }
 
 .toggle {
-  position: fixed;
+  position: absolute;
   top: 12px;
   right: 12px;
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(30px); }
+  from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
@@ -104,172 +85,126 @@ input {
 </head>
 
 <body>
-
 <button class="toggle" onclick="toggleDark()">🌙</button>
 
 <header>
   <h1>🇩🇪 German Trainer</h1>
-  <p>B1 → C1 • Practice</p>
+  <p>B1 → B2 → C1</p>
 </header>
 
 <main>
-
-<!-- PROGRESS -->
-<div style="margin-bottom:16px;">
-  <b>Progress</b>
-  <div style="background:#ddd;border-radius:6px;overflow:hidden;">
-    <div id="progressBar" style="height:12px;width:0%;background:#16a34a"></div>
-  </div>
-  <div id="stats"></div>
-  <div id="streak">🔥 Streak: 0 days</div>
-</div>
-
-<div class="lesson" id="lessonBox"></div>
-
+  <div class="lesson" id="lessonBox"></div>
 </main>
 
 <script>
-const grammarPool = {
-  B1: [
-    { q: "Ich ___ mehr Deutsch lernen.", a: "möchte", topic: "Wünsche" },
-    { q: "Er bleibt zu Hause, ___ es regnet.", a: "weil", topic: "Nebensatz" },
-    { q: "Gestern ___ ich lange gearbeitet.", a: "habe", topic: "Perfekt" }
-  ],
-  B2: [
-    { q: "Wenn ich mehr Zeit ___, würde ich reisen.", a: "hätte", topic: "Konjunktiv II" },
-    { q: "Das ist der Mann, ___ ich geholfen habe.", a: "dem", topic: "Relativsatz" }
-  ],
-  C1: [
-    { q: "Hätte man früher reagiert, ___ der Schaden kleiner gewesen.", a: "wäre", topic: "Inversion" }
-  ]
-};
+/* ------------------ DATA ------------------ */
 
-const levels = ["B1", "B2", "C1"];
+const lessons = [
+  { type: "short", level: "B1", question: "Ich ___ mehr Deutsch lernen.", answer: "möchte" },
+  { type: "short", level: "B1", question: "Er bleibt zu Hause, ___ es regnet.", answer: "weil" },
 
-function generateLesson() {
-  const level = levels[Math.floor(Math.random() * levels.length)];
-  const pool = grammarPool[level];
-  const item = pool[Math.floor(Math.random() * pool.length)];
+  {
+    type: "deep",
+    level: "B1",
+    text: "Anna arbeitet in einem Büro. Sie steht um sieben Uhr auf.",
+    questions: [
+      { q: "Wo arbeitet Anna?", a: "in einem Büro" },
+      { q: "Wann steht sie auf?", a: "um sieben Uhr" }
+    ]
+  }
+];
 
-  return {
-    type: "short",
-    level,
-    topic: item.topic,
-    question: item.q,
-    answer: item.a
-  };
-}
+let index = 0;
+let answered = false;
 
-
-let stats = JSON.parse(localStorage.getItem("stats")) || {
-  total:0, correct:0, lastDate:null, streak:0
-};
-
-function today() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function updateStreak() {
-  const t = today();
-  if (stats.lastDate === t) return;
-  stats.streak = (stats.lastDate === new Date(Date.now()-86400000).toISOString().split("T")[0])
-    ? stats.streak+1 : 1;
-  stats.lastDate = t;
-}
-
-function saveStats() {
-  localStorage.setItem("stats", JSON.stringify(stats));
-  renderStats();
-}
-
-function renderStats() {
-  const pct = stats.total ? Math.round(stats.correct/stats.total*100) : 0;
-  progressBar.style.width = pct+"%";
-  statsEl.innerText = `Correct ${stats.correct}/${stats.total}`;
-  streak.innerText = `🔥 Streak: ${stats.streak} days`;
-}
-
-const progressBar = document.getElementById("progressBar");
-const statsEl = document.getElementById("stats");
-const streak = document.getElementById("streak");
+/* ------------------ RENDER ------------------ */
 
 function renderLesson() {
+  answered = false;
   const box = document.getElementById("lessonBox");
-  box.classList.remove("animate");
-  void box.offsetWidth; // FORCE reflow
-  box.classList.add("animate");
+  const lesson = lessons[index];
 
-const l = currentLesson;
-
-  if (l.type === "short") {
+  if (lesson.type === "short") {
     box.innerHTML = `
-      <h3>${l.level} – ${l.topic}</h3>
-      <p>${l.question}</p>
-      <input id="answer" onkeydown="if(event.key==='Enter')checkShort()">
-      <br>
-      <button onclick="checkShort()">Check</button>
+      <h2>${lesson.level}</h2>
+      <p>${lesson.question}</p>
+      <input id="answer" onkeydown="handleEnter(event)" autofocus />
       <p id="feedback"></p>
-      <button onclick="nextLesson()">Next</button>
+      <button onclick="check()">Check</button>
+      <button onclick="next()">Next</button>
     `;
   } else {
     box.innerHTML = `
-      <h3>${l.level} – ${l.topic}</h3>
-      <p>${l.text}</p>
-      ${l.questions.map((q,i)=>`
-        <p>${q.q}<br><input id="q${i}"></p>
+      <h2>${lesson.level} – Reading</h2>
+      <p>${lesson.text}</p>
+      ${lesson.questions.map((q,i)=>`
+        <p>${q.q}<br/>
+        <input id="q${i}" onkeydown="handleEnter(event)" /></p>
       `).join("")}
-      <button onclick="checkDeep()">Check</button>
       <p id="feedback"></p>
-      <button onclick="nextLesson()">Next</button>
+      <button onclick="check()">Check</button>
+      <button onclick="next()">Next</button>
     `;
   }
 }
 
-function checkShort() {
-  updateStreak();
-  stats.total++;
-  const user = answer.value.trim();
-  const fb = feedback;
-  if (user === lessons[index].answer) {
-    stats.correct++;
-    fb.innerHTML = "✔ Correct!";
-    fb.style.color="green";
+/* ------------------ CHECK ------------------ */
+
+function check() {
+  if (answered) return;
+  answered = true;
+
+  const lesson = lessons[index];
+  const fb = document.getElementById("feedback");
+
+  if (lesson.type === "short") {
+    const user = document.getElementById("answer").value.trim().toLowerCase();
+    if (user === lesson.answer.toLowerCase()) {
+      fb.innerHTML = "✔ Correct!";
+      fb.style.color = "green";
+    } else {
+      fb.innerHTML = `✘ Correct answer: <b>${lesson.answer}</b>`;
+      fb.style.color = "red";
+    }
   } else {
-    fb.innerHTML = `✘ Correct: <b>${lessons[index].answer}</b>`;
-    fb.style.color="red";
+    let out = "";
+    lesson.questions.forEach((q,i)=>{
+      const v = document.getElementById("q"+i).value.toLowerCase();
+      if (v.includes(q.a.toLowerCase())) {
+        out += `<p style="color:green">✔ ${q.q}</p>`;
+      } else {
+        out += `<p style="color:red">✘ ${q.q}<br/>Correct: <b>${q.a}</b></p>`;
+      }
+    });
+    fb.innerHTML = out;
   }
-  saveStats();
 }
 
-function checkDeep() {
-  updateStreak();
-  let score=0;
-  lessons[index].questions.forEach((q,i)=>{
-    if (document.getElementById("q"+i).value.toLowerCase().includes(q.a.toLowerCase()))
-      score++;
-  });
-  stats.total += lessons[index].questions.length;
-  stats.correct += score;
-  feedback.innerHTML = `Score: ${score}/${lessons[index].questions.length}`;
-  saveStats();
-}
+/* ------------------ NEXT ------------------ */
 
-function nextLesson() {
-  currentLesson = generateLesson();
+function next() {
+  index = (index + 1) % lessons.length;
   renderLesson();
 }
-let currentLesson = generateLesson();
-  
-function toggleDark() {
-  document.body.classList.toggle("dark");
-  localStorage.setItem("dark", document.body.classList.contains("dark"));
+
+/* ------------------ ENTER KEY ------------------ */
+
+function handleEnter(e) {
+  if (e.key === "Enter") {
+    if (!answered) check();
+    else next();
+  }
 }
 
-if (localStorage.getItem("dark")==="true") document.body.classList.add("dark");
+/* ------------------ DARK MODE ------------------ */
 
-renderStats();
+function toggleDark() {
+  document.body.classList.toggle("dark");
+}
+
+/* ------------------ START ------------------ */
+
 renderLesson();
 </script>
-
 </body>
 </html>
