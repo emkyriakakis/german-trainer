@@ -132,27 +132,52 @@ input {
 /* ---------- STORAGE ---------- */
 let grammarStats = JSON.parse(localStorage.getItem("grammarStats")) || {};
 
-/* ---------- POOLS ---------- */
+/* ---------- GRAMMAR POOL (LEVELLED) ---------- */
 const grammar = [
   {id:"g1",lvl:"B1",topic:"Wünsche",q:"Ich ___ mehr Deutsch lernen.",a:"möchte"},
-  {id:"g2",lvl:"B1",topic:"Nebensätze",q:"Er bleibt zu Hause, ___ es regnet.",a:"weil"},
-  {id:"g3",lvl:"B2",topic:"Konjunktiv II",q:"Wenn ich Zeit ___, würde ich reisen.",a:"hätte"},
-  {id:"g4",lvl:"C1",topic:"Inversion",q:"Kaum ___ er da, begann es.",a:"war"}
+  {id:"g2",lvl:"B2",topic:"Wünsche",q:"Ich wünschte, ich ___ mehr Zeit.",a:"hätte"},
+  {id:"g3",lvl:"C1",topic:"Wünsche",q:"Er äußerte den Wunsch, man ___ früher begonnen.",a:"hätte"},
+
+  {id:"g4",lvl:"B1",topic:"Nebensätze",q:"Ich bleibe zu Hause, ___ es regnet.",a:"weil"},
+  {id:"g5",lvl:"B2",topic:"Nebensätze",q:"Er ging, obwohl er ___ müde war.",a:"sehr"},
+  {id:"g6",lvl:"C1",topic:"Nebensätze",q:"Nicht nur ___ er kam, sondern er blieb.",a:"dass"},
+
+  {id:"g7",lvl:"B1",topic:"Konjunktiv II",q:"Wenn ich Geld ___, reiste ich.",a:"hätte"},
+  {id:"g8",lvl:"B2",topic:"Konjunktiv II",q:"Er tat so, als ___ er nichts.",a:"wüsste"},
+  {id:"g9",lvl:"C1",topic:"Konjunktiv II",q:"Es wäre besser gewesen, man ___ früher reagiert.",a:"hätte"}
 ];
 
+/* ---------- VOCAB ---------- */
 const vocab = [
   {id:"v1",lvl:"B1",pairs:[["arbeiten","work"],["die Pause","break"],["der Alltag","daily life"]]},
-  {id:"v2",lvl:"B2",pairs:[["vermeiden","avoid"],["die Verantwortung","responsibility"],["erreichen","achieve"]]}
+  {id:"v2",lvl:"B2",pairs:[["vermeiden","avoid"],["erreichen","achieve"],["die Verantwortung","responsibility"]]},
+  {id:"v3",lvl:"C1",pairs:[["abwägen","weigh up"],["nachhaltig","sustainable"],["umfassend","comprehensive"]]}
 ];
 
 let current = null;
 let dragged = null;
 
-/* ---------- GENERATOR ---------- */
+/* ---------- HELPERS ---------- */
+function topicLevel(topic) {
+  const s = grammarStats[topic];
+  if (!s) return "B1";
+  const pct = s.correct / s.done;
+  if (pct < 0.6) return "B1";
+  if (pct < 0.8) return "B2";
+  return "C1";
+}
+
+function generateGrammar() {
+  const topics = [...new Set(grammar.map(g=>g.topic))];
+  const topic = topics[Math.floor(Math.random()*topics.length)];
+  const level = topicLevel(topic);
+  const pool = grammar.filter(g=>g.topic===topic && g.lvl===level);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
 function generate() {
-  return Math.random() < 0.5
-    ? grammar[Math.floor(Math.random()*grammar.length)]
-    : vocab[Math.floor(Math.random()*vocab.length)];
+  return Math.random() < 0.6 ? generateGrammar()
+                             : vocab[Math.floor(Math.random()*vocab.length)];
 }
 
 /* ---------- LOAD ---------- */
@@ -160,9 +185,7 @@ function load() {
   current = generate();
   document.getElementById("feedback").innerHTML = "";
   document.getElementById("meta").innerText =
-    current.topic
-      ? `${current.lvl} • ${current.topic}`
-      : `${current.lvl} • Vocabulary`;
+    current.topic ? `${current.lvl} • ${current.topic}` : `${current.lvl} • Vocabulary`;
 
   const c = document.getElementById("content");
 
@@ -182,7 +205,7 @@ function load() {
   } else {
     c.innerHTML = `
       <p>${current.q}</p>
-      <input id="answer" placeholder="Type answer and press Enter">
+      <input id="answer" placeholder="Press Enter to check">
     `;
     document.getElementById("answer").addEventListener("keydown", e=>{
       if(e.key==="Enter") checkGrammar();
@@ -203,13 +226,14 @@ function checkGrammar() {
   grammarStats[current.topic].done++;
   if (correct) grammarStats[current.topic].correct++;
 
-  fb.style.color = correct ? "var(--correct)" : "var(--wrong)";
-  fb.innerHTML = correct ? "✔ Correct!" : `✘ Correct: <b>${current.a}</b>`;
+  fb.style.color = correct ? "#16a34a" : "#dc2626";
+  fb.innerHTML = correct ? "✔ Correct!" : `✘ Correct answer: <b>${current.a}</b>`;
 
   localStorage.setItem("grammarStats", JSON.stringify(grammarStats));
   renderGrammarBars();
 }
 
+/* ---------- VOCAB DROP ---------- */
 function drop(en, el) {
   const pair = current.pairs.find(p=>p[1]===en);
   if (pair[0] === dragged) {
@@ -229,19 +253,15 @@ function renderGrammarBars() {
   for (let topic in grammarStats) {
     const s = grammarStats[topic];
     const pct = Math.round((s.correct / s.done) * 100);
-
     box.innerHTML += `
-      <div class="topic">${topic} (${pct}%)</div>
+      <div>${topic} (${pct}%)</div>
       <div class="progress"><div style="width:${pct}%"></div></div>
     `;
   }
 }
 
 /* ---------- NEXT ---------- */
-function next() {
-  load();
-}
-
+function next() { load(); }
 function shuffle(a){return a.sort(()=>Math.random()-0.5);}
 
 /* ---------- START ---------- */
