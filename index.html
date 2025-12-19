@@ -232,4 +232,128 @@ function generateGrammar() {
 function generateVocab() {
   let pool = vocab.filter(v => !seenToday[v.id] && !seenWeek[v.id]);
   if(pool.length===0) pool = vocab;
-  return pool[Math.floor(Ma]()
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function generateWriting() {
+  let pool = writingTasks.filter(w => !seenToday[w.id] && !seenWeek[w.id]);
+  if(pool.length===0) pool = writingTasks;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function generate() {
+  const r = Math.random();
+  if (r<0.4) return generateGrammar();
+  if (r<0.7) return generateVocab();
+  return generateWriting();
+}
+
+/* ================= RENDER ================= */
+function load() {
+  enterMode="check";
+  current = generate();
+  document.getElementById("feedback").innerHTML="";
+  document.getElementById("meta").innerText=current.topic?`${current.lvl} • ${current.topic}`:"Vocabulary";
+  const c=document.getElementById("content");
+
+  if(current.pairs){ // vocab
+    const left = shuffle([...current.pairs]);
+    const right = shuffle([...current.pairs.map(p=>p[1])]);
+    c.innerHTML=`<p>Match German → English</p>
+      <div style="display:flex;gap:20px;">
+        <div>${left.map(p=>`<div draggable="true" ondragstart="dragged='${p[0]}'" class="word">${p[0]}</div>`).join("")}</div>
+        <div>${right.map(r=>`<div class="drop" ondragover="event.preventDefault()" ondrop="drop('${r}',this)">${r}</div>`).join("")}</div>
+      </div>`;
+  } else if(current.q){ // grammar
+    c.innerHTML=`<p>${current.q}</p><input id="answer" placeholder="Press ENTER" autofocus>`;
+    document.getElementById("answer").addEventListener("keydown",e=>{if(e.key==="Enter") handleEnter();});
+  } else if(current.prompt){ // writing
+    c.innerHTML=`<p>${current.prompt}</p><input id="answer" placeholder="Press ENTER" autofocus>`;
+    document.getElementById("answer").addEventListener("keydown",e=>{if(e.key==="Enter") handleEnter();});
+  }
+}
+
+/* ================= ENTER / CHECK ================= */
+function handleEnter() {
+  if(enterMode==="check"){
+    if(current.q) checkGrammar();
+    else if(current.prompt) checkWriting();
+    enterMode="next";
+  } else { nextExercise(); }
+}
+
+function checkGrammar(){
+  const user = document.getElementById("answer").value.trim().toLowerCase();
+  const fb = document.getElementById("feedback");
+  const ok = user===current.a;
+  if(!grammarStats[current.topic]) grammarStats[current.topic]={done:0,correct:0};
+  grammarStats[current.topic].done++;
+  if(ok) grammarStats[current.topic].correct++;
+  fb.style.color = ok?"green":"red";
+  fb.innerHTML=ok?`✔ Correct!`:`✘ Correct: <b>${current.a}</b>`;
+  seenToday[current.id]=true;
+  seenWeek[current.id]=true;
+  daily.done++;
+  saveAll();
+  renderDaily();
+  renderGrammarBars();
+}
+
+function checkWriting(){
+  const text = document.getElementById("answer").value.toLowerCase();
+  const fb = document.getElementById("feedback");
+  let ok=true; let hints=[];
+  if(current.mustInclude && !current.mustInclude.some(w=>text.includes(w))){ok=false;hints.push("🔎 Verwende die richtige Struktur.");}
+  if(current.verbAtEnd){
+    const words=text.split(" "); const last=words[words.length-1];
+    if(!last.match(/(habe|hat|bin|ist|war|wäre|hätte|würde|arbeite|lerne|komme)/)){ok=false;hints.push("📌 Das Verb sollte am Ende stehen.");}
+  }
+  fb.style.color = ok?"green":"orange";
+  fb.innerHTML = ok?"✔ Gute Struktur!":hints.join("<br>") + `<hr>✔ Beispiel:<br><b>${current.model}</b>`;
+  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++;
+  saveAll(); renderDaily();
+}
+
+/* ================= VOCAB ================= */
+function drop(en,el){
+  const p = current.pairs.find(x=>x[1]===en);
+  if(p[0]===dragged){el.innerText="✔ "+en; el.style.background="#bbf7d0";}
+  else {el.innerHTML=`✘ ${p[0]} → ${p[1]}`; el.style.background="#fecaca";}
+  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++;
+  renderDaily(); saveAll();
+}
+
+/* ================= DASHBOARD ================= */
+function renderGrammarBars(){
+  const box=document.getElementById("grammarBars"); box.innerHTML="";
+  for(let t in grammarStats){
+    const s=grammarStats[t]; const p=Math.round(s.correct/s.done*100);
+    box.innerHTML+=`<div>${t} (${p}%)</div><div class="progress"><div style="width:${p}%"></div></div>`;
+  }
+}
+
+function renderDaily(){
+  const pct=Math.min(100,Math.round(daily.done/daily.goal*100));
+  document.getElementById("dailyBar").style.width=pct+"%";
+  document.getElementById("dailyText").innerText=`${daily.done}/${daily.goal} • 🔥 ${daily.streak} day streak`;
+}
+
+/* ================= SAVE ================= */
+function saveAll(){
+  localStorage.setItem("grammarStats",JSON.stringify(grammarStats));
+  localStorage.setItem("seenToday",JSON.stringify(seenToday));
+  localStorage.setItem("seenWeek",JSON.stringify(seenWeek));
+  localStorage.setItem("daily",JSON.stringify(daily));
+}
+
+/* ================= UTILS ================= */
+function nextExercise(){load();}
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+
+/* ================= START ================= */
+renderGrammarBars();
+renderDaily();
+load();
+</script>
+</body>
+</html>
