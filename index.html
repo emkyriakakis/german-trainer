@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>German Trainer – Smart Grammar</title>
+<title>German Trainer – Grammar & Vocabulary</title>
 
 <style>
 :root {
@@ -83,12 +83,12 @@ button {
 
 <header>
   <h1>🇩🇪 German Trainer</h1>
-  <p>Smart Grammar Generator (B1–C1)</p>
+  <p>Grammar + Vocabulary • B1–C1</p>
 </header>
 
 <main>
-  <div class="card" id="card">
-    <h2 id="level"></h2>
+  <div class="card">
+    <h2 id="meta"></h2>
     <p id="question"></p>
 
     <input id="answer" placeholder="Type your answer and press Enter">
@@ -103,7 +103,7 @@ button {
 let mode = "check";
 let current = null;
 
-/* 🧠 SMART GRAMMAR GENERATOR */
+/* ---------- GRAMMAR POOL ---------- */
 const grammarPool = [
   { level:"B1", q:"Ich ___ mehr Deutsch lernen.", a:"möchte" },
   { level:"B1", q:"Er bleibt zu Hause, ___ es regnet.", a:"weil" },
@@ -111,37 +111,64 @@ const grammarPool = [
 
   { level:"B2", q:"Wenn ich mehr Zeit ___, würde ich reisen.", a:"hätte" },
   { level:"B2", q:"Er tut so, ___ ob er alles wüsste.", a:"als" },
-  { level:"B2", q:"Das ist der Mann, ___ Auto gestohlen wurde.", a:"dessen" },
 
   { level:"C1", q:"Kaum ___ er angekommen, begann das Meeting.", a:"war" },
-  { level:"C1", q:"Nicht nur ___ er klug, sondern auch höflich.", a:"ist" },
   { level:"C1", q:"Je mehr man übt, ___ besser wird man.", a:"desto" }
 ];
 
+/* ---------- VOCABULARY POOL ---------- */
+const vocabPool = [
+  { level:"B1", de:"arbeiten", en:"work" },
+  { level:"B1", de:"der Alltag", en:"daily life" },
+  { level:"B1", de:"die Pause", en:"break" },
+
+  { level:"B2", de:"die Verantwortung", en:"responsibility" },
+  { level:"B2", de:"vermeiden", en:"avoid" },
+
+  { level:"C1", de:"die Voraussetzung", en:"prerequisite" },
+  { level:"C1", de:"durchsetzen", en:"enforce" }
+];
+
+/* ---------- RANDOM GENERATOR ---------- */
 function randomExercise() {
-  return grammarPool[Math.floor(Math.random() * grammarPool.length)];
+  if (Math.random() < 0.5) {
+    const g = grammarPool[Math.floor(Math.random()*grammarPool.length)];
+    return { type:"grammar", ...g };
+  } else {
+    const v = vocabPool[Math.floor(Math.random()*vocabPool.length)];
+    return {
+      type:"vocab",
+      level:v.level,
+      q:`What is the English meaning of: <b>${v.de}</b>?`,
+      a:v.en
+    };
+  }
 }
 
+/* ---------- LOAD ---------- */
 function loadExercise() {
   current = randomExercise();
-  document.getElementById("level").innerText = "Level: " + current.level;
-  document.getElementById("question").innerText = current.q;
+  document.getElementById("meta").innerText =
+    `${current.type === "grammar" ? "Grammar" : "Vocabulary"} • Level ${current.level}`;
+  document.getElementById("question").innerHTML = current.q;
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerText = "";
   document.getElementById("actionBtn").innerText = "Check";
   mode = "check";
 }
 
+/* ---------- CHECK / NEXT ---------- */
 function handleAction() {
   if (mode === "check") checkAnswer();
   else loadExercise();
 }
 
 function checkAnswer() {
-  const user = document.getElementById("answer").value.trim();
+  const user = document.getElementById("answer").value.trim().toLowerCase();
+  const correct = current.a.toLowerCase();
   const fb = document.getElementById("feedback");
 
-  if (user.toLowerCase() === current.a.toLowerCase()) {
+  if (user === correct) {
     fb.style.color = "var(--correct)";
     fb.innerHTML = "✔ Correct!";
   } else {
@@ -153,12 +180,12 @@ function checkAnswer() {
   mode = "next";
 }
 
-/* ENTER KEY LOGIC */
+/* ---------- ENTER KEY ---------- */
 document.getElementById("answer").addEventListener("keydown", e => {
   if (e.key === "Enter") handleAction();
 });
 
-/* START */
+/* ---------- START ---------- */
 loadExercise();
 </script>
 
