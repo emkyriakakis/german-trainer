@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>German Trainer – Adaptive & Unlimited</title>
+<title>German Trainer – Unlimited & Dynamic</title>
 <style>
 :root {
   --bg:#f0f4f8;
@@ -18,7 +18,7 @@ body {margin:0;font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(
 header {background:var(--primary);color:white;padding:20px;text-align:center;}
 header h1 {margin:0;font-size:2em;}
 header p {margin:4px;font-size:1em;}
-main {max-width:800px;margin:auto;padding:20px;}
+main {max-width:900px;margin:auto;padding:20px;}
 .card {background:var(--card);padding:20px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,0.1);margin-bottom:20px;transition:transform .3s;}
 .card:hover{transform:translateY(-5px);}
 button{padding:10px 16px;background:var(--primary);color:white;border:none;border-radius:8px;cursor:pointer;margin-top:12px;transition:background .2s;}
@@ -70,82 +70,97 @@ if(daily.date!==new Date().toISOString().split("T")[0]){
 }
 
 /* ================= DATA ================= */
+const verbs=["spielen","lernen","gehen","lesen","schreiben","arbeiten","reisen"];
+const nouns=["Haus","Schule","Hund","Katze","Buch","Auto","Straße","Baum"];
+const adjectives=["groß","klein","schön","alt","neu"];
+const people=["Anna","Max","Lisa","Tom"];
+const places=["in die Schule","zum Park","nach Hause","ins Büro"];
+
+/* Grammar templates with placeholders */
 const grammarTemplates=[
-  {q:"Ich ___ gern ins Kino, weil es regnet.",options:["gehe","bleibe","spiele"],answer:"gehe",lvl:"B1"},
-  {q:"Wenn ich Zeit ___, ___ ich dich besuchen.",options:["hätte","würde","war"],answer:"hätte",lvl:"B1"},
-  {q:"Er tut so, als ob er ___ nichts.",options:["wüsste","hatte","konnte"],answer:"wüsste",lvl:"B2"},
-  {q:"Man hätte gewollt, dass er früher ___ .",options:["käme","ging","hätte"],answer:"käme",lvl:"C1"}
+  {template:"{person} {verb} gern {noun}, weil {reason}.",lvl:"B1"},
+  {template:"Wenn {person} Zeit {verb2}, {verb3} er {noun}.",lvl:"B2"},
+  {template:"Er tut so, als ob er {verb} {noun}.",lvl:"C1"}
 ];
 
+/* Writing templates */
 const writingTemplates=[
-  {prompt:"Schreibe einen Satz mit 'weil' über deine Arbeit.",answer:"Ich lerne Deutsch, weil ich arbeite.",lvl:"B1"},
-  {prompt:"Schreibe einen Satz mit 'obwohl' über deine Schule.",answer:"Ich lerne Deutsch, obwohl ich müde bin.",lvl:"B2"},
-  {prompt:"Schreibe einen Satz mit Konjunktiv II (hätte/wäre).",answer:"Wenn ich mehr Zeit hätte, würde ich mehr lesen.",lvl:"C1"}
+  {template:"Schreibe einen Satz mit '{conjunction}' über {noun}.",lvl:"B1"},
+  {template:"Schreibe einen Satz mit Konjunktiv II über {noun}.",lvl:"C1"}
 ];
 
+/* Vocabulary list */
 const vocabList=[
-  ["arbeiten","to work"],["lernen","to learn"],["Haus","house"],["Katze","cat"],["Buch","book"]
+  ["arbeiten","to work"],["lernen","to learn"],["Haus","house"],["Katze","cat"],["Buch","book"],
+  ["essen","to eat"],["Trinken","drink"],["Auto","car"],["Straße","street"],["Baum","tree"]
 ];
 
+/* Articles list */
 const articlesList=[
-  {word:"Apfel",art:"der"},{word:"Banane",art:"die"},{word:"Mädchen",art:"das"},{word:"Hund",art:"der"},{word:"Katze",art:"die"}
+  {word:"Apfel",art:"der"},{word:"Banane",art:"die"},{word:"Mädchen",art:"das"},
+  {word:"Hund",art:"der"},{word:"Katze",art:"die"},{word:"Auto",art:"das"}
 ];
 
-const readingPool=[
-{text:"Anna geht in die Schule. Sie lernt Deutsch und spielt danach im Park.",
- questions:[
-  {q:"Wo geht Anna jeden Tag?",options:["in die Schule","im Park","zu Hause"],answer:"in die Schule"},
-  {q:"Was macht sie nach der Schule?",options:["lernt","spielt im Park","schläft"],answer:"spielt im Park"}
-]},
-{text:"Max arbeitet im Büro. Er mag seine Arbeit, aber manchmal ist sie stressig.",
- questions:[
-  {q:"Wo arbeitet Max?",options:["im Büro","in der Schule","im Park"],answer:"im Büro"},
-  {q:"Wie empfindet er seine Arbeit manchmal?",options:["stressig","leicht","langweilig"],answer:"stressig"}
-]}
+/* Reading templates */
+const readingTemplates=[
+  "{person} geht {place}. Sie {verb} {noun}.",
+  "{person} arbeitet {place}. Er {verb} {noun}."
 ];
 
 /* ================= UTILS ================= */
 function shuffle(a){return a.sort(()=>Math.random()-0.5);}
 function saveAll(){localStorage.setItem("stats",JSON.stringify(stats));localStorage.setItem("daily",JSON.stringify(daily));}
-
-/* ================= ADAPTIVE DIFFICULTY ================= */
-function getDifficulty(){
-  if(consecutiveCorrect>=5) return "C1";
-  if(consecutiveCorrect>=3) return "B2";
-  return "B1";
-}
+function getDifficulty(){if(consecutiveCorrect>=5) return "C1"; if(consecutiveCorrect>=3) return "B2"; return "B1";}
 
 /* ================= GENERATORS ================= */
 function generateGrammar(){
   const lvl=getDifficulty();
-  const pool=grammarTemplates.filter(g=>g.lvl===lvl);
-  return {...pool[Math.floor(Math.random()*pool.length)],id:"g-"+Date.now()+Math.random(),topic:"Grammar"};
+  const t=grammarTemplates.filter(g=>g.lvl===lvl)[Math.floor(Math.random()*grammarTemplates.length)];
+  const person=people[Math.floor(Math.random()*people.length)];
+  const verb=verbs[Math.floor(Math.random()*verbs.length)];
+  const verb2=verbs[Math.floor(Math.random()*verbs.length)];
+  const verb3=verbs[Math.floor(Math.random()*verbs.length)];
+  const noun=nouns[Math.floor(Math.random()*nouns.length)];
+  const reason="es regnet";
+  const q=t.template.replace("{person}",person).replace("{verb}",verb).replace("{verb2}",verb2).replace("{verb3}",verb3).replace("{noun}",noun).replace("{reason}",reason);
+  const answer=verb; // simplified correct answer
+  return {id:"g-"+Date.now()+Math.random(),topic:"Grammar",lvl:lvl,q:q,options:shuffle([verb,verb2,verb3]),answer:answer};
 }
+
 function generateWriting(){
   const lvl=getDifficulty();
-  const pool=writingTemplates.filter(w=>w.lvl===lvl);
-  const w=pool[Math.floor(Math.random()*pool.length)];
-  const choices=shuffle([w.answer,"Ich lerne Deutsch.","Ich gehe zur Schule."]);
-  return {...w,choices,id:"w-"+Date.now()+Math.random(),topic:"Writing"};
+  const t=writingTemplates[Math.floor(Math.random()*writingTemplates.length)];
+  const noun=nouns[Math.floor(Math.random()*nouns.length)];
+  const conjunction=shuffle(["weil","obwohl","damit"])[0];
+  const q=t.template.replace("{conjunction}",conjunction).replace("{noun}",noun);
+  const answer=`Ich lerne Deutsch ${conjunction} ich ${noun} habe.`; // example
+  return {id:"w-"+Date.now()+Math.random(),topic:"Writing",lvl:lvl,prompt:q,choices:shuffle([answer,"Ich gehe zur Schule.","Ich spiele Fußball."]),answer:answer};
 }
+
 function generateVocab(){
-  const v=shuffle(vocabList).slice(0,3);
+  const v=shuffle(vocabList).slice(0,5);
   return {id:"v-"+Date.now()+Math.random(),pairs:v,topic:"Vocabulary"};
 }
+
 function generateArticle(){
   const a=articlesList[Math.floor(Math.random()*articlesList.length)];
   return {id:"a-"+Date.now()+Math.random(),word:a.word,article:a.art,topic:"Articles"};
 }
+
 function generateReading(){
-  const r=readingPool[Math.floor(Math.random()*readingPool.length)];
-  const q=r.questions[Math.floor(Math.random()*r.questions.length)];
-  return {...q,text:r.text,id:"r-"+Date.now()+Math.random(),topic:"Reading"};
+  const template=readingTemplates[Math.floor(Math.random()*readingTemplates.length)];
+  const person=people[Math.floor(Math.random()*people.length)];
+  const place=places[Math.floor(Math.random()*places.length)];
+  const verb=verbs[Math.floor(Math.random()*verbs.length)];
+  const noun=nouns[Math.floor(Math.random()*nouns.length)];
+  const text=template.replace("{person}",person).replace("{place}",place).replace("{verb}",verb).replace("{noun}",noun);
+  const options=shuffle([verb,"lesen","gehen"]);
+  return {id:"r-"+Date.now()+Math.random(),topic:"Reading",text:text,q:`Was macht ${person}?`,options:options,answer:verb};
 }
 
 /* ================= FLOW ================= */
 function nextExercise(){
-  enterMode="check";
-  document.getElementById("feedback").innerHTML="";
+  enterMode="check"; document.getElementById("feedback").innerHTML="";
   const r=Math.random();
   if(r<0.2) current=generateGrammar();
   else if(r<0.4) current=generateVocab();
@@ -164,10 +179,8 @@ function renderExercise(){
 
   if(current.topic==="Grammar"){
     content.innerHTML=`<p>${current.q}</p>`+current.options.map(o=>`<div class="choice" onclick="checkChoice('${o}')">${o}</div>`).join("");
-    addTypingListener();
   } else if(current.topic==="Writing"){
     content.innerHTML=`<p>${current.prompt}</p>`+current.choices.map(o=>`<div class="choice" onclick="checkChoice('${o}')">${o}</div>`).join("");
-    addTypingListener();
   } else if(current.topic==="Vocabulary"){
     content.innerHTML=current.pairs.map(p=>`<p>${p[0]} → ? <b>${p[1]}</b></p>`).join("");
     stats[current.id]={done:current.pairs.length,correct:current.pairs.length};
@@ -179,39 +192,10 @@ function renderExercise(){
   }
 }
 
-/* ================= TYPING HANDLER ================= */
-function addTypingListener(){
-  const input=document.createElement("input");
-  input.placeholder="Tippe hier und drücke ENTER";
-  input.addEventListener("keydown",e=>{
-    if(e.key==="Enter"){
-      if(enterMode==="check"){
-        checkTyping(input.value);
-        enterMode="next";
-      } else {
-        nextExercise();
-      }
-    }
-  });
-  document.getElementById("content").appendChild(input);
-  input.focus();
-}
-function checkTyping(val){
-  const fb=document.getElementById("feedback");
-  const answer=current.answer||current.model;
-  const correct=val.trim().toLowerCase()===answer.trim().toLowerCase();
-  fb.style.color=correct?"green":"red";
-  fb.innerHTML=correct?"✔ Correct!":`✘ Correct: <b>${answer}</b>`;
-  stats[current.id]=stats[current.id]||{done:0,correct:0,wrong:0};
-  stats[current.id].done++; correct?stats[current.id].correct++:stats[current.id].wrong++;
-  daily.done++; saveAll(); renderDaily(); renderGrammarBars();
-  consecutiveCorrect=correct?consecutiveCorrect+1:0;
-}
-
 /* ================= CHECK ================= */
 function checkChoice(choice){
   const fb=document.getElementById("feedback");
-  const answer=current.answer||current.model;
+  const answer=current.answer;
   const correct=choice===answer;
   fb.style.color=correct?"green":"red";
   fb.innerHTML=correct?"✔ Correct!":`✘ Correct: <b>${answer}</b>`;
