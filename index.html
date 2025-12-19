@@ -96,6 +96,24 @@ input {
   font-size:16px;
 }
 
+#dailyContainer {
+  margin-bottom:20px;
+}
+
+#dailyBarContainer {
+  background:#e5e7eb;
+  border-radius:10px;
+  overflow:hidden;
+  height:12px;
+}
+
+#dailyBar {
+  height:12px;
+  width:0%;
+  background:var(--primary);
+  transition:width .3s ease;
+}
+
 @keyframes slideIn {
   from {opacity:0; transform:translateX(20px);}
   to {opacity:1; transform:translateX(0);}
@@ -112,6 +130,13 @@ input {
 
 <main>
 
+  <!-- DAILY PROGRESS -->
+  <div id="dailyContainer" class="card">
+    <h3>🔥 Daily Goal</h3>
+    <div id="dailyBarContainer"><div id="dailyBar"></div></div>
+    <p id="dailyText"></p>
+  </div>
+
   <!-- GRAMMAR DASHBOARD -->
   <div class="card">
     <h3>📊 Grammar Progress</h3>
@@ -123,27 +148,19 @@ input {
     <h2 id="meta"></h2>
     <div id="content"></div>
     <div id="feedback"></div>
-    <button onclick="next()">Next</button>
+    <button onclick="nextExercise()">Next</button>
   </div>
 
 </main>
 
 <script>
 /* ================= STATE ================= */
-let enterMode = "check"; // check → next
+let enterMode = "check"; 
 let current = null;
 let dragged = null;
 
 /* ================= DATE HELPERS ================= */
-function today() {
-  return new Date().toISOString().split("T")[0];
-}
-function weekKey() {
-  const d = new Date();
-  const onejan = new Date(d.getFullYear(),0,1);
-  const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
-  return `${d.getFullYear()}-W${week}`;
-}
+function today() { return new Date().toISOString().split("T")[0]; }
 
 /* ================= STORAGE ================= */
 let grammarStats = JSON.parse(localStorage.getItem("grammarStats")) || {};
@@ -161,9 +178,7 @@ let daily = JSON.parse(localStorage.getItem("daily")) || {
 if (daily.date !== today()) {
   if (daily.lastDate === new Date(Date.now()-86400000).toISOString().split("T")[0]) {
     daily.streak++;
-  } else {
-    daily.streak = 1;
-  }
+  } else { daily.streak = 1; }
   daily.lastDate = daily.date;
   daily.date = today();
   daily.done = 0;
@@ -175,46 +190,20 @@ const grammar = [
   {id:"g1",lvl:"B1",topic:"Wünsche",q:"Ich ___ mehr Deutsch lernen.",a:"möchte"},
   {id:"g2",lvl:"B2",topic:"Wünsche",q:"Ich wünschte, ich ___ mehr Zeit.",a:"hätte"},
   {id:"g3",lvl:"C1",topic:"Wünsche",q:"Man hätte gewollt, dass er früher ___ .",a:"käme"},
-
   {id:"g4",lvl:"B1",topic:"Nebensätze",q:"Ich bleibe zu Hause, ___ es regnet.",a:"weil"},
   {id:"g5",lvl:"B2",topic:"Nebensätze",q:"Er ging, obwohl er ___ müde war.",a:"sehr"},
   {id:"g6",lvl:"C1",topic:"Nebensätze",q:"Nicht nur ___ er kam, sondern blieb.",a:"dass"},
-
   {id:"g7",lvl:"B1",topic:"Konjunktiv II",q:"Wenn ich Zeit ___, käme ich.",a:"hätte"},
   {id:"g8",lvl:"B2",topic:"Konjunktiv II",q:"Er tat so, als ___ er nichts.",a:"wüsste"},
   {id:"g9",lvl:"C1",topic:"Konjunktiv II",q:"Es wäre besser gewesen, man ___ früher reagiert.",a:"hätte"}
 ];
-  
+
 const writingTasks = [
-  {
-    id: "w1",
-    lvl: "B1",
-    topic: "Nebensätze",
-    prompt: "Schreibe einen Satz mit „weil“ über deine Arbeit.",
-    mustInclude: ["weil"],
-    verbAtEnd: true,
-    model: "Ich lerne Deutsch, weil ich in der Schweiz arbeite."
-  },
-  {
-    id: "w2",
-    lvl: "B2",
-    topic: "obwohl",
-    prompt: "Schreibe einen Satz mit „obwohl“ über Zeit.",
-    mustInclude: ["obwohl"],
-    verbAtEnd: true,
-    model: "Ich lerne Deutsch, obwohl ich wenig Zeit habe."
-  },
-  {
-    id: "w3",
-    lvl: "C1",
-    topic: "Konjunktiv II",
-    prompt: "Schreibe einen Satz mit Konjunktiv II (hätte/wäre).",
-    mustInclude: ["hätte","wäre","würde"],
-    model: "Wenn ich mehr Zeit hätte, würde ich mehr lesen."
-  }
+  {id:"w1",lvl:"B1",topic:"Nebensätze",prompt:"Schreibe einen Satz mit „weil“ über deine Arbeit.",mustInclude:["weil"],verbAtEnd:true,model:"Ich lerne Deutsch, weil ich in der Schweiz arbeite."},
+  {id:"w2",lvl:"B2",topic:"obwohl",prompt:"Schreibe einen Satz mit „obwohl“ über Zeit.",mustInclude:["obwohl"],verbAtEnd:true,model:"Ich lerne Deutsch, obwohl ich wenig Zeit habe."},
+  {id:"w3",lvl:"C1",topic:"Konjunktiv II",prompt:"Schreibe einen Satz mit Konjunktiv II (hätte/wäre).",mustInclude:["hätte","wäre","würde"],model:"Wenn ich mehr Zeit hätte, würde ich mehr lesen."}
 ];
 
-  
 const vocab = [
   {id:"v1",pairs:[["arbeiten","work"],["die Pause","break"],["der Alltag","daily life"]]},
   {id:"v2",pairs:[["vermeiden","avoid"],["erreichen","achieve"],["die Verantwortung","responsibility"]]}
@@ -235,180 +224,12 @@ function generateGrammar() {
   const topics = [...new Set(grammar.map(g=>g.topic))];
   const topic = topics[Math.floor(Math.random()*topics.length)];
   const lvl = topicLevel(topic);
-
-  let pool = grammar.filter(g =>
-    g.topic===topic &&
-    g.lvl===lvl &&
-    !seenToday[g.id] &&
-    !seenWeek[g.id]
-  );
-
-  if (pool.length === 0) {
-    pool = grammar.filter(g=>g.topic===topic && g.lvl===lvl);
-  }
-
+  let pool = grammar.filter(g => g.topic===topic && g.lvl===lvl && !seenToday[g.id] && !seenWeek[g.id]);
+  if(pool.length===0) pool = grammar.filter(g=>g.topic===topic && g.lvl===lvl);
   return pool[Math.floor(Math.random()*pool.length)];
 }
 
-function generate() {
-  const r = Math.random();
-  if (r < 0.5) return generateGrammar();
-  if (r < 0.75) return vocab[Math.floor(Math.random()*vocab.length)];
-  return writingTasks[Math.floor(Math.random()*writingTasks.length)];
-}
-
-/* ================= RENDER ================= */
-function load() {
-  enterMode = "check";
-  current = generate();
-  document.getElementById("feedback").innerHTML = "";
-  document.getElementById("meta").innerText =
-    current.topic ? `${current.lvl} • ${current.topic}` : "Vocabulary";
-
-  const c = document.getElementById("content");
-
-  if (current.pairs) {
-    const left = shuffle([...current.pairs]);
-    const right = shuffle([...current.pairs.map(p=>p[1])]);
-    c.innerHTML = `
-      <p>Match German → English</p>
-      <div style="display:flex;gap:20px;">
-        <div>${left.map(p=>`
-          <div draggable="true" ondragstart="dragged='${p[0]}'"
-          class="word">${p[0]}</div>`).join("")}</div>
-        <div>${right.map(r=>`
-          <div class="drop"
-          ondragover="event.preventDefault()"
-          ondrop="drop('${r}',this)">${r}</div>`).join("")}</div>
-      </div>`;
-  } else {
-    c.innerHTML = `
-      <p>${current.q}</p>
-      <input id="answer" placeholder="Press ENTER" autofocus>
-    `;
-    document.getElementById("answer").addEventListener("keydown", e=>{
-      if(e.key==="Enter") handleEnter();
-    });
-  }
-}
-
-/* ================= ENTER HANDLER ================= */
-function handleEnter() {
-  if (enterMode === "check") {
-    checkGrammar();
-    enterMode = "next";
-  } else {
-    next();
-  }
-}
-function checkWriting() {
-  const text = document.getElementById("answer").value.toLowerCase();
-  const fb = document.getElementById("feedback");
-  let ok = true;
-  let hints = [];
-
-  if (current.mustInclude) {
-    if (!current.mustInclude.some(w => text.includes(w))) {
-      ok = false;
-      hints.push("🔎 Verwende die richtige Struktur (z.B. „obwohl“, „weil“).");
-    }
-  }
-
-  if (current.verbAtEnd) {
-    const words = text.split(" ");
-    if (!words[words.length-1].match(/(habe|hat|bin|ist|war|wäre|hätte|würde|arbeite|lerne|komme)/)) {
-      ok = false;
-      hints.push("📌 Das Verb sollte am Ende stehen.");
-    }
-  }
-
-  fb.style.color = ok ? "green" : "orange";
-  fb.innerHTML = ok
-    ? "✔ Gute Struktur!"
-    : hints.join("<br>") + `<hr>✔ Beispiel:<br><b>${current.model}</b>`;
-
-  daily.done++;
-  enterMode = "next";
-  saveAll();
-  renderDaily();
-}
-
-/* ================= CHECK ================= */
-function checkGrammar() {
-  const user = document.getElementById("answer").value.trim().toLowerCase();
-  const fb = document.getElementById("feedback");
-  const ok = user === current.a;
-
-  if (!grammarStats[current.topic])
-    grammarStats[current.topic] = {done:0,correct:0};
-
-  grammarStats[current.topic].done++;
-  if (ok) grammarStats[current.topic].correct++;
-
-  fb.style.color = ok ? "green" : "red";
-  fb.innerHTML = ok ? "✔ Correct!" : `✘ Correct: <b>${current.a}</b>`;
-
-  seenToday[current.id] = true;
-  seenWeek[current.id] = true;
-  daily.done++;
-
-  saveAll();
-  renderDaily();
-  renderGrammarBars();
-}
-
-/* ================= VOCAB ================= */
-function drop(en, el) {
-  const p = current.pairs.find(x=>x[1]===en);
-  if (p[0]===dragged) {
-    el.innerText="✔ "+en;
-    el.style.background="#bbf7d0";
-  } else {
-    el.innerHTML=`✘ ${p[0]} → ${p[1]}`;
-    el.style.background="#fecaca";
-  }
-  enterMode="next";
-}
-
-/* ================= DASHBOARD ================= */
-function renderGrammarBars() {
-  const box=document.getElementById("grammarBars");
-  box.innerHTML="";
-  for(let t in grammarStats){
-    const s=grammarStats[t];
-    const p=Math.round(s.correct/s.done*100);
-    box.innerHTML+=`
-      <div>${t} (${p}%)</div>
-      <div class="progress"><div style="width:${p}%"></div></div>`;
-  }
-}
-
-function renderDaily() {
-  const pct=Math.min(100,Math.round(daily.done/daily.goal*100));
-  document.getElementById("dailyBar").style.width=pct+"%";
-  document.getElementById("dailyText").innerText=
-    `${daily.done}/${daily.goal} • 🔥 ${daily.streak} day streak`;
-}
-
-/* ================= SAVE ================= */
-function saveAll() {
-  localStorage.setItem("grammarStats",JSON.stringify(grammarStats));
-  localStorage.setItem("seenToday",JSON.stringify(seenToday));
-  localStorage.setItem("seenWeek",JSON.stringify(seenWeek));
-  localStorage.setItem("daily",JSON.stringify(daily));
-}
-
-/* ================= UTILS ================= */
-function next(){load();}
-function shuffle(a){return a.sort(()=>Math.random()-0.5);}
-
-/* ================= START ================= */
-renderGrammarBars();
-renderDaily();
-load();
-</script>
-
-
-
-</body>
-</html>
+function generateVocab() {
+  let pool = vocab.filter(v => !seenToday[v.id] && !seenWeek[v.id]);
+  if(pool.length===0) pool = vocab;
+  return pool[Math.floor(Ma]()
