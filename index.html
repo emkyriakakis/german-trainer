@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>German Trainer – Grammar Progress</title>
-
+<title>German Trainer – Adaptive</title>
 <style>
 :root {
   --bg:#f4f6f8;
@@ -14,118 +13,38 @@
   --correct:#16a34a;
   --wrong:#dc2626;
 }
-
-body {
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-
-header {
-  background:var(--primary);
-  color:white;
-  padding:16px;
-  text-align:center;
-}
-
-main {
-  max-width:750px;
-  margin:auto;
-  padding:20px;
-}
-
-.card {
-  background:var(--card);
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 6px 15px rgba(0,0,0,0.1);
-  animation:slideIn .4s ease;
-  margin-bottom:20px;
-}
-
-.progress {
-  background:#e5e7eb;
-  border-radius:10px;
-  overflow:hidden;
-  margin-bottom:10px;
-}
-
-.progress div {
-  height:10px;
-  width:0%;
-  background:var(--correct);
-  transition:width .3s ease;
-}
-
-.word {
-  padding:8px;
-  background:#e5e7eb;
-  margin:6px;
-  border-radius:6px;
-  cursor:grab;
-}
-
-.drop {
-  padding:8px;
-  background:#fef3c7;
-  margin:6px;
-  border-radius:6px;
-  min-width:160px;
-}
-
-button {
-  padding:10px 16px;
-  background:var(--primary);
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  margin-top:12px;
-}
-
-input {
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  font-size:16px;
-}
-
+body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--text); }
+header { background:var(--primary); color:white; padding:16px; text-align:center; }
+main { max-width:750px; margin:auto; padding:20px; }
+.card { background:var(--card); padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.1); animation:slideIn .4s ease; margin-bottom:20px; }
+.progress { background:#e5e7eb; border-radius:10px; overflow:hidden; margin-bottom:10px; }
+.progress div { height:10px; width:0%; background:var(--correct); transition:width .3s ease; }
+.word { padding:8px; background:#e5e7eb; margin:6px; border-radius:6px; cursor:grab; }
+.drop { padding:8px; background:#fef3c7; margin:6px; border-radius:6px; min-width:160px; }
+button { padding:10px 16px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; margin-top:12px; }
+input { width:100%; padding:10px; margin-top:10px; font-size:16px; }
 #dailyContainer {margin-bottom:20px;}
-#dailyBarContainer {
-  background:#e5e7eb;
-  border-radius:10px;
-  overflow:hidden;
-  height:12px;
-}
+#dailyBarContainer {background:#e5e7eb; border-radius:10px; overflow:hidden; height:12px;}
 #dailyBar {height:12px;width:0%;background:var(--primary);transition:width .3s ease;}
-
-@keyframes slideIn {
-  from {opacity:0; transform:translateX(20px);}
-  to {opacity:1; transform:translateX(0);}
-}
+@keyframes slideIn { from {opacity:0; transform:translateX(20px);} to {opacity:1; transform:translateX(0);} }
 </style>
 </head>
-
 <body>
-
 <header>
   <h1>🇩🇪 German Trainer</h1>
-  <p>Grammar topics • Vocabulary • No repeats</p>
+  <p>Adaptive Grammar • Vocabulary • Articles • Unlimited Practice</p>
 </header>
-
 <main>
-
   <!-- DAILY PROGRESS -->
   <div id="dailyContainer" class="card">
-    <h3>🔥 Daily Goal</h3>
+    <h3>🔥 Daily Progress</h3>
     <div id="dailyBarContainer"><div id="dailyBar"></div></div>
     <p id="dailyText"></p>
   </div>
 
   <!-- GRAMMAR DASHBOARD -->
   <div class="card">
-    <h3>📊 Grammar Progress</h3>
+    <h3>📊 Topic Progress</h3>
     <div id="grammarBars"></div>
   </div>
 
@@ -136,7 +55,6 @@ input {
     <div id="feedback"></div>
     <button onclick="nextExercise()">Next</button>
   </div>
-
 </main>
 
 <script>
@@ -145,23 +63,18 @@ let enterMode="check", current=null, dragged=null;
 
 /* ================= DATE HELPERS ================= */
 function today(){ return new Date().toISOString().split("T")[0]; }
-function currentWeek(){
-  const d=new Date(), onejan=new Date(d.getFullYear(),0,1);
-  return Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7);
-}
+function currentWeek(){ const d=new Date(), onejan=new Date(d.getFullYear(),0,1); return Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7); }
 
 /* ================= STORAGE ================= */
-let grammarStats=JSON.parse(localStorage.getItem("grammarStats"))||{};
-let seenToday=JSON.parse(localStorage.getItem("seenToday"))||{};
-let seenWeek=JSON.parse(localStorage.getItem("seenWeek"))||{};
-let daily=JSON.parse(localStorage.getItem("daily"))||{
-  date: today(), done:0, goal:10, streak:0, lastDate:null, week: currentWeek()
-};
+let stats = JSON.parse(localStorage.getItem("stats"))||{};
+let seenToday = JSON.parse(localStorage.getItem("seenToday"))||{};
+let seenWeek = JSON.parse(localStorage.getItem("seenWeek"))||{};
+let daily = JSON.parse(localStorage.getItem("daily"))||{date:today(), done:0, streak:0, lastDate:null, week:currentWeek()};
 
 /* reset daily and weekly */
 const weekNow=currentWeek();
 if(daily.date!==today()){
-  if(daily.lastDate===new Date(Date.now()-86400000).toISOString().split("T")[0]) daily.streak++; else daily.streak=1;
+  daily.streak = (daily.lastDate===new Date(Date.now()-86400000).toISOString().split("T")[0])? daily.streak+1 : 1;
   daily.lastDate=daily.date;
   daily.date=today();
   daily.done=0;
@@ -193,44 +106,68 @@ const vocab=[
   {id:"v2",pairs:[["vermeiden","avoid"],["erreichen","achieve"],["die Verantwortung","responsibility"]]}
 ];
 
+const articles=[
+  {id:"a1",word:"Apfel",article:"der"},
+  {id:"a2",word:"Banane",article:"die"},
+  {id:"a3",word:"Mädchen",article:"das"}
+];
+
 /* ================= LEVEL LOGIC ================= */
 function topicLevel(topic){
-  const s=grammarStats[topic]; if(!s) return "B1";
-  const p=s.correct/s.done;
+  const s=stats[topic]; if(!s) return "B1";
+  const p=s.correct/(s.done||1);
   if(p<0.6) return "B1"; if(p<0.8) return "B2"; return "C1";
 }
 
 /* ================= GENERATION ================= */
+function chooseAdaptive(pool){
+  pool.sort((a,b)=>{
+    const aFail=(stats[a.id]?.wrong||0), bFail=(stats[b.id]?.wrong||0);
+    return bFail-aFail; // prioritize wrong exercises
+  });
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
 function generateGrammar(){
   const topics=[...new Set(grammar.map(g=>g.topic))];
   const topic=topics[Math.floor(Math.random()*topics.length)];
   const lvl=topicLevel(topic);
   let pool=grammar.filter(g=>g.topic===topic && g.lvl===lvl && !seenToday[g.id] && !seenWeek[g.id]);
-  if(pool.length===0) pool=grammar.filter(g=>g.topic===topic && g.lvl===lvl);
-  return pool[Math.floor(Math.random()*pool.length)];
+  if(!pool.length) pool=grammar.filter(g=>g.topic===topic && g.lvl===lvl);
+  return chooseAdaptive(pool);
 }
+
 function generateVocab(){
   let pool=vocab.filter(v=>!seenToday[v.id] && !seenWeek[v.id]);
-  if(pool.length===0) pool=vocab;
-  return pool[Math.floor(Math.random()*pool.length)];
+  if(!pool.length) pool=vocab;
+  return chooseAdaptive(pool);
 }
+
 function generateWriting(){
   let pool=writingTasks.filter(w=>!seenToday[w.id] && !seenWeek[w.id]);
-  if(pool.length===0) pool=writingTasks;
-  return pool[Math.floor(Math.random()*pool.length)];
+  if(!pool.length) pool=writingTasks;
+  return chooseAdaptive(pool);
 }
+
+function generateArticles(){
+  let pool=articles.filter(a=>!seenToday[a.id] && !seenWeek[a.id]);
+  if(!pool.length) pool=articles;
+  return chooseAdaptive(pool);
+}
+
 function generate(){
   const r=Math.random();
-  if(r<0.4) return generateGrammar();
-  if(r<0.7) return generateVocab();
-  return generateWriting();
+  if(r<0.35) return generateGrammar();
+  if(r<0.6) return generateVocab();
+  if(r<0.8) return generateWriting();
+  return generateArticles();
 }
 
 /* ================= RENDER ================= */
 function load(){
   enterMode="check"; current=generate();
   document.getElementById("feedback").innerHTML="";
-  document.getElementById("meta").innerText=current.topic?`${current.lvl} • ${current.topic}`:"Vocabulary";
+  document.getElementById("meta").innerText=current.topic?`${current.lvl} • ${current.topic}`:"Vocabulary/Articles";
   const c=document.getElementById("content");
 
   if(current.pairs){ // vocab
@@ -246,6 +183,9 @@ function load(){
   } else if(current.prompt){ // writing
     c.innerHTML=`<p>${current.prompt}</p><input id="answer" placeholder="Press ENTER" autofocus>`;
     document.getElementById("answer").addEventListener("keydown",e=>{if(e.key==="Enter") handleEnter();});
+  } else if(current.word){ // article
+    c.innerHTML=`<p>Choose the correct article for <b>${current.word}</b>:</p>
+      ${["der","die","das"].map(a=>`<button onclick="checkArticle('${a}')">${a}</button>`).join("")}`;
   }
 }
 
@@ -262,11 +202,10 @@ function checkGrammar(){
   const user=document.getElementById("answer").value.trim().toLowerCase();
   const fb=document.getElementById("feedback");
   const ok=user===current.a;
-  if(!grammarStats[current.topic]) grammarStats[current.topic]={done:0,correct:0};
-  grammarStats[current.topic].done++; if(ok) grammarStats[current.topic].correct++;
+  if(!stats[current.topic]) stats[current.topic]={done:0,correct:0,wrong:0};
+  stats[current.topic].done++; if(ok) stats[current.topic].correct++; else stats[current.topic].wrong=(stats[current.topic].wrong||0)+1;
   fb.style.color=ok?"green":"red"; fb.innerHTML=ok?"✔ Correct!":`✘ Correct: <b>${current.a}</b>`;
-  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++;
-  saveAll(); renderDaily(); renderGrammarBars();
+  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++; saveAll(); renderDaily(); renderGrammarBars();
 }
 
 function checkWriting(){
@@ -278,6 +217,18 @@ function checkWriting(){
     if(!last.match(/(habe|hat|bin|ist|war|wäre|hätte|würde|arbeite|lerne|komme)/)){ok=false;hints.push("📌 Das Verb sollte am Ende stehen.");}}
   fb.style.color=ok?"green":"orange";
   fb.innerHTML=ok?"✔ Gute Struktur!":hints.join("<br>")+`<hr>✔ Beispiel:<br><b>${current.model}</b>`;
+  stats[current.topic]=stats[current.topic]||{done:0,correct:0,wrong:0};
+  stats[current.topic].done++; if(ok) stats[current.topic].correct++; else stats[current.topic].wrong++;
+  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++; saveAll(); renderDaily(); renderGrammarBars();
+}
+
+function checkArticle(article){
+  const fb=document.getElementById("feedback");
+  const ok=article===current.article;
+  fb.style.color=ok?"green":"red";
+  fb.innerHTML=ok?"✔ Correct!":`✘ Correct: <b>${current.article}</b>`;
+  stats[current.word]=stats[current.word]||{done:0,correct:0,wrong:0};
+  stats[current.word].done++; if(ok) stats[current.word].correct++; else stats[current.word].wrong=(stats[current.word].wrong||0)+1;
   seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++; saveAll(); renderDaily();
 }
 
@@ -286,28 +237,29 @@ function drop(en,el){
   const p=current.pairs.find(x=>x[1]===en);
   if(p[0]===dragged){el.innerText="✔ "+en; el.style.background="#bbf7d0";}
   else {el.innerHTML=`✘ ${p[0]} → ${p[1]}`; el.style.background="#fecaca";}
-  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++;
-  renderDaily(); saveAll();
+  stats[current.id]=stats[current.id]||{done:0,correct:0,wrong:0};
+  stats[current.id].done++; if(p[0]===dragged) stats[current.id].correct++; else stats[current.id].wrong++;
+  seenToday[current.id]=true; seenWeek[current.id]=true; daily.done++; renderDaily(); saveAll();
 }
 
 /* ================= DASHBOARD ================= */
 function renderGrammarBars(){
   const box=document.getElementById("grammarBars"); box.innerHTML="";
-  for(let t in grammarStats){
-    const s=grammarStats[t]; const p=Math.round(s.correct/s.done*100);
+  for(let t in stats){
+    const s=stats[t]; const p=Math.round(s.correct/(s.done||1)*100);
     box.innerHTML+=`<div>${t} (${p}%)</div><div class="progress"><div style="width:${p}%"></div></div>`;
   }
 }
 
 function renderDaily(){
-  const pct=Math.min(100,Math.round(daily.done/daily.goal*100));
+  const pct=Math.min(100,Math.round(daily.done/20*100));
   document.getElementById("dailyBar").style.width=pct+"%";
-  document.getElementById("dailyText").innerText=`${daily.done}/${daily.goal} • 🔥 ${daily.streak} day streak`;
+  document.getElementById("dailyText").innerText=`${daily.done} exercises • 🔥 ${daily.streak} day streak`;
 }
 
 /* ================= SAVE ================= */
 function saveAll(){
-  localStorage.setItem("grammarStats",JSON.stringify(grammarStats));
+  localStorage.setItem("stats",JSON.stringify(stats));
   localStorage.setItem("seenToday",JSON.stringify(seenToday));
   localStorage.setItem("seenWeek",JSON.stringify(seenWeek));
   localStorage.setItem("daily",JSON.stringify(daily));
