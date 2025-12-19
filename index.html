@@ -184,7 +184,37 @@ const grammar = [
   {id:"g8",lvl:"B2",topic:"Konjunktiv II",q:"Er tat so, als ___ er nichts.",a:"wüsste"},
   {id:"g9",lvl:"C1",topic:"Konjunktiv II",q:"Es wäre besser gewesen, man ___ früher reagiert.",a:"hätte"}
 ];
+  
+const writingTasks = [
+  {
+    id: "w1",
+    lvl: "B1",
+    topic: "Nebensätze",
+    prompt: "Schreibe einen Satz mit „weil“ über deine Arbeit.",
+    mustInclude: ["weil"],
+    verbAtEnd: true,
+    model: "Ich lerne Deutsch, weil ich in der Schweiz arbeite."
+  },
+  {
+    id: "w2",
+    lvl: "B2",
+    topic: "obwohl",
+    prompt: "Schreibe einen Satz mit „obwohl“ über Zeit.",
+    mustInclude: ["obwohl"],
+    verbAtEnd: true,
+    model: "Ich lerne Deutsch, obwohl ich wenig Zeit habe."
+  },
+  {
+    id: "w3",
+    lvl: "C1",
+    topic: "Konjunktiv II",
+    prompt: "Schreibe einen Satz mit Konjunktiv II (hätte/wäre).",
+    mustInclude: ["hätte","wäre","würde"],
+    model: "Wenn ich mehr Zeit hätte, würde ich mehr lesen."
+  }
+];
 
+  
 const vocab = [
   {id:"v1",pairs:[["arbeiten","work"],["die Pause","break"],["der Alltag","daily life"]]},
   {id:"v2",pairs:[["vermeiden","avoid"],["erreichen","achieve"],["die Verantwortung","responsibility"]]}
@@ -221,8 +251,10 @@ function generateGrammar() {
 }
 
 function generate() {
-  return Math.random()<0.65 ? generateGrammar()
-                            : vocab[Math.floor(Math.random()*vocab.length)];
+  const r = Math.random();
+  if (r < 0.5) return generateGrammar();
+  if (r < 0.75) return vocab[Math.floor(Math.random()*vocab.length)];
+  return writingTasks[Math.floor(Math.random()*writingTasks.length)];
 }
 
 /* ================= RENDER ================= */
