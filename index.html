@@ -1,210 +1,166 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>German Trainer B1–C1</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>German Trainer – Smart Grammar</title>
 
 <style>
 :root {
-  --bg: #f4f6f8;
-  --card: #ffffff;
-  --text: #222;
-  --primary: #2563eb;
-  --correct: #16a34a;
-  --wrong: #dc2626;
-}
-
-body.dark {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --text: #e5e7eb;
-  --primary: #60a5fa;
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --text:#222;
+  --primary:#2563eb;
+  --correct:#16a34a;
+  --wrong:#dc2626;
 }
 
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
 }
 
 header {
-  background: var(--primary);
-  color: white;
-  padding: 16px;
-  text-align: center;
+  background:var(--primary);
+  color:white;
+  padding:16px;
+  text-align:center;
 }
 
 main {
-  max-width: 800px;
-  margin: auto;
-  padding: 16px;
+  max-width:600px;
+  margin:auto;
+  padding:20px;
 }
 
-.lesson {
-  background: var(--card);
-  padding: 16px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  animation: slideIn 0.4s ease;
+.card {
+  background:var(--card);
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 6px 15px rgba(0,0,0,0.1);
+  animation:slideIn .4s ease;
+}
+
+input {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  font-size:16px;
 }
 
 button {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  margin-top: 10px;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
+  margin-top:12px;
+  padding:10px 16px;
+  font-size:16px;
+  background:var(--primary);
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
 
 #feedback {
-  margin-top: 10px;
-  animation: fadeIn 0.3s ease;
-}
-
-.toggle {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  margin-top:12px;
+  font-weight:bold;
+  animation:fadeIn .3s ease;
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {opacity:0; transform:translateX(20px);}
+  to {opacity:1; transform:translateX(0);}
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {opacity:0;}
+  to {opacity:1;}
 }
 </style>
 </head>
 
 <body>
-<button class="toggle" onclick="toggleDark()">🌙</button>
 
 <header>
   <h1>🇩🇪 German Trainer</h1>
-  <p>B1 → B2 → C1</p>
+  <p>Smart Grammar Generator (B1–C1)</p>
 </header>
 
 <main>
-  <div class="lesson" id="lessonBox"></div>
+  <div class="card" id="card">
+    <h2 id="level"></h2>
+    <p id="question"></p>
+
+    <input id="answer" placeholder="Type your answer and press Enter">
+
+    <button onclick="handleAction()" id="actionBtn">Check</button>
+
+    <div id="feedback"></div>
+  </div>
 </main>
 
 <script>
-/* ------------------ DATA ------------------ */
+let mode = "check";
+let current = null;
 
-const lessons = [
-  { type: "short", level: "B1", question: "Ich ___ mehr Deutsch lernen.", answer: "möchte" },
-  { type: "short", level: "B1", question: "Er bleibt zu Hause, ___ es regnet.", answer: "weil" },
+/* 🧠 SMART GRAMMAR GENERATOR */
+const grammarPool = [
+  { level:"B1", q:"Ich ___ mehr Deutsch lernen.", a:"möchte" },
+  { level:"B1", q:"Er bleibt zu Hause, ___ es regnet.", a:"weil" },
+  { level:"B1", q:"Gestern ___ ich lange gearbeitet.", a:"habe" },
 
-  {
-    type: "deep",
-    level: "B1",
-    text: "Anna arbeitet in einem Büro. Sie steht um sieben Uhr auf.",
-    questions: [
-      { q: "Wo arbeitet Anna?", a: "in einem Büro" },
-      { q: "Wann steht sie auf?", a: "um sieben Uhr" }
-    ]
-  }
+  { level:"B2", q:"Wenn ich mehr Zeit ___, würde ich reisen.", a:"hätte" },
+  { level:"B2", q:"Er tut so, ___ ob er alles wüsste.", a:"als" },
+  { level:"B2", q:"Das ist der Mann, ___ Auto gestohlen wurde.", a:"dessen" },
+
+  { level:"C1", q:"Kaum ___ er angekommen, begann das Meeting.", a:"war" },
+  { level:"C1", q:"Nicht nur ___ er klug, sondern auch höflich.", a:"ist" },
+  { level:"C1", q:"Je mehr man übt, ___ besser wird man.", a:"desto" }
 ];
 
-let index = 0;
-let answered = false;
-
-/* ------------------ RENDER ------------------ */
-
-function renderLesson() {
-  answered = false;
-  const box = document.getElementById("lessonBox");
-  const lesson = lessons[index];
-
-  if (lesson.type === "short") {
-    box.innerHTML = `
-      <h2>${lesson.level}</h2>
-      <p>${lesson.question}</p>
-      <input id="answer" onkeydown="handleEnter(event)" autofocus />
-      <p id="feedback"></p>
-      <button onclick="check()">Check</button>
-      <button onclick="next()">Next</button>
-    `;
-  } else {
-    box.innerHTML = `
-      <h2>${lesson.level} – Reading</h2>
-      <p>${lesson.text}</p>
-      ${lesson.questions.map((q,i)=>`
-        <p>${q.q}<br/>
-        <input id="q${i}" onkeydown="handleEnter(event)" /></p>
-      `).join("")}
-      <p id="feedback"></p>
-      <button onclick="check()">Check</button>
-      <button onclick="next()">Next</button>
-    `;
-  }
+function randomExercise() {
+  return grammarPool[Math.floor(Math.random() * grammarPool.length)];
 }
 
-/* ------------------ CHECK ------------------ */
+function loadExercise() {
+  current = randomExercise();
+  document.getElementById("level").innerText = "Level: " + current.level;
+  document.getElementById("question").innerText = current.q;
+  document.getElementById("answer").value = "";
+  document.getElementById("feedback").innerText = "";
+  document.getElementById("actionBtn").innerText = "Check";
+  mode = "check";
+}
 
-function check() {
-  if (answered) return;
-  answered = true;
+function handleAction() {
+  if (mode === "check") checkAnswer();
+  else loadExercise();
+}
 
-  const lesson = lessons[index];
+function checkAnswer() {
+  const user = document.getElementById("answer").value.trim();
   const fb = document.getElementById("feedback");
 
-  if (lesson.type === "short") {
-    const user = document.getElementById("answer").value.trim().toLowerCase();
-    if (user === lesson.answer.toLowerCase()) {
-      fb.innerHTML = "✔ Correct!";
-      fb.style.color = "green";
-    } else {
-      fb.innerHTML = `✘ Correct answer: <b>${lesson.answer}</b>`;
-      fb.style.color = "red";
-    }
+  if (user.toLowerCase() === current.a.toLowerCase()) {
+    fb.style.color = "var(--correct)";
+    fb.innerHTML = "✔ Correct!";
   } else {
-    let out = "";
-    lesson.questions.forEach((q,i)=>{
-      const v = document.getElementById("q"+i).value.toLowerCase();
-      if (v.includes(q.a.toLowerCase())) {
-        out += `<p style="color:green">✔ ${q.q}</p>`;
-      } else {
-        out += `<p style="color:red">✘ ${q.q}<br/>Correct: <b>${q.a}</b></p>`;
-      }
-    });
-    fb.innerHTML = out;
+    fb.style.color = "var(--wrong)";
+    fb.innerHTML = `✘ Correct answer: <b>${current.a}</b>`;
   }
+
+  document.getElementById("actionBtn").innerText = "Next";
+  mode = "next";
 }
 
-/* ------------------ NEXT ------------------ */
+/* ENTER KEY LOGIC */
+document.getElementById("answer").addEventListener("keydown", e => {
+  if (e.key === "Enter") handleAction();
+});
 
-function next() {
-  index = (index + 1) % lessons.length;
-  renderLesson();
-}
-
-/* ------------------ ENTER KEY ------------------ */
-
-function handleEnter(e) {
-  if (e.key === "Enter") {
-    if (!answered) check();
-    else next();
-  }
-}
-
-/* ------------------ DARK MODE ------------------ */
-
-function toggleDark() {
-  document.body.classList.toggle("dark");
-}
-
-/* ------------------ START ------------------ */
-
-renderLesson();
+/* START */
+loadExercise();
 </script>
+
 </body>
 </html>
