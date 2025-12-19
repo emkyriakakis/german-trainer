@@ -55,18 +55,17 @@ input{width:100%;padding:10px;margin-top:10px;font-size:16px;border-radius:6px;b
 /* ================= STATE ================= */
 let current=null, consecutiveCorrect=0;
 let stats=JSON.parse(localStorage.getItem("stats"))||{};
-let daily=JSON.parse(localStorage.getItem("daily"))||{date:new Date().toISOString().split("T")[0], done:0, streak:0, lastDate:null, todayIds:[]};
+let daily=JSON.parse(localStorage.getItem("daily"))||{date:new Date().toISOString().split("T")[0], done:0, streak:0, lastDate:null, todayExercises:[]};
 const todayKey=new Date().toISOString().split("T")[0];
 if(daily.date!==todayKey){
   daily.streak=(daily.lastDate===new Date(Date.now()-86400000).toISOString().split("T")[0])? daily.streak+1:1;
-  daily.lastDate=daily.date; daily.date=todayKey; daily.done=0; daily.todayIds=[];
+  daily.lastDate=daily.date; daily.date=todayKey; daily.done=0; daily.todayExercises=[];
 }
 
 /* ================= DATA ================= */
 const verbs=["spielen","lernen","gehen","lesen","schreiben","arbeiten","reisen"];
 const nouns=["Haus","Schule","Hund","Katze","Buch","Auto","Straße","Baum"];
 const people=["Anna","Max","Lisa","Tom"];
-const places=["in die Schule","zum Park","nach Hause","ins Büro"];
 const grammarTemplates=[{template:"{person} {verb} gern {noun}, weil {reason}.",lvl:"B1"},
 {template:"Wenn {person} Zeit {verb2}, {verb3} er {noun}.",lvl:"B2"},
 {template:"Er tut so, als ob er {verb} {noun}.",lvl:"C1"}];
@@ -153,23 +152,44 @@ function checkReading(choice,el){
   readingIndex++; setTimeout(()=>{if(readingIndex<currentReading.questions.length){renderReadingQuestion();}else{nextExercise();}},1000);
 }
 
-/* ================= EXERCISE FLOW ================= */
+/* ================= DAILY 20 GENERATOR ================= */
+const DAILY_GOAL = 20;
+function generateDailyExercises() {
+  daily.todayExercises = [];
+  const types = ["Grammar","Writing","Vocabulary","Articles","Reading"];
+  let attempts = 0;
+  while(daily.todayExercises.length < DAILY_GOAL && attempts < 200) {
+    attempts++;
+    const type = types[Math.floor(Math.random()*types.length)];
+    let exercise;
+    if(type==="Grammar") exercise = generateGrammar();
+    else if(type==="Writing") exercise = generateWriting();
+    else if(type==="Vocabulary") exercise = generateVocab();
+    else if(type==="Articles") exercise = generateArticle();
+    else if(type==="Reading") exercise = generateReading();
+    if(!daily.todayExercises.some(e=>e.id===exercise.id)){
+      daily.todayExercises.push(exercise);
+    }
+  }
+  daily.done=0; saveAll(); dailyIndex=0;
+}
+
+/* ================= NEXT EXERCISE ================= */
+let dailyIndex=0;
 function nextExercise(){
   clearChoices();
-  let newExercise;
-  do{
-    const r=Math.random();
-    if(r<0.2) newExercise=generateGrammar();
-    else if(r<0.4) newExercise=generateVocab();
-    else if(r<0.6) newExercise=generateWriting();
-    else if(r<0.8) newExercise=generateArticle();
-    else newExercise=generateReading();
-  } while(daily.todayIds.includes(newExercise.id));
-  current=newExercise;
-  daily.todayIds.push(current.id);
+  if(!daily.todayExercises || daily.todayExercises.length===0){ generateDailyExercises(); dailyIndex=0; }
+  if(dailyIndex>=daily.todayExercises.length){
+    document.getElementById("meta").innerText="🎉 Daily exercises completed!";
+    document.getElementById("content").innerHTML="";
+    document.getElementById("feedback").innerHTML="";
+    return;
+  }
+  current=daily.todayExercises[dailyIndex]; dailyIndex++;
   renderExercise();
 }
 
+/* ================= RENDER ================= */
 function renderExercise(){
   const meta=document.getElementById("meta"); const content=document.getElementById("content"); const fb=document.getElementById("feedback");
   fb.innerHTML="";
@@ -221,16 +241,18 @@ function renderGrammarBars(){
   }
 }
 function renderDaily(){
-  const pct=Math.min(100,Math.round(daily.done/20*100));
+  const pct=Math.min(100,Math.round(daily.done/DAILY_GOAL*100));
   document.getElementById("dailyBar").style.width=pct+"%";
-  document.getElementById("dailyText").innerText=`${daily.done}/20 exercises • 🔥 ${daily.streak} day streak`;
+  document.getElementById("dailyText").innerText=`${daily.done}/${DAILY_GOAL} exercises • 🔥 ${daily.streak} day streak`;
 }
 
 /* ================= EVENTS ================= */
 document.getElementById("nextBtn").addEventListener("click",()=>{nextExercise();});
 
 /* ================= START ================= */
-renderDaily(); renderGrammarBars(); nextExercise();
+if(!daily.todayExercises || daily.todayExercises.length===0){ generateDailyExercises(); dailyIndex=0; }
+renderGrammarBars(); renderDaily(); nextExercise();
 </script>
+</main>
 </body>
 </html>
