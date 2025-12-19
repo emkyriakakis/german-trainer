@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>German Trainer – Grammar & Vocabulary</title>
+<title>German Trainer – No Repeats</title>
 
 <style>
 :root {
@@ -64,17 +64,25 @@ button {
 #feedback {
   margin-top:12px;
   font-weight:bold;
-  animation:fadeIn .3s ease;
+}
+
+.progress {
+  background:#e5e7eb;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:12px;
+}
+
+.progress > div {
+  height:12px;
+  width:0%;
+  background:var(--correct);
+  transition:width .3s ease;
 }
 
 @keyframes slideIn {
   from {opacity:0; transform:translateX(20px);}
   to {opacity:1; transform:translateX(0);}
-}
-
-@keyframes fadeIn {
-  from {opacity:0;}
-  to {opacity:1;}
 }
 </style>
 </head>
@@ -83,109 +91,142 @@ button {
 
 <header>
   <h1>🇩🇪 German Trainer</h1>
-  <p>Grammar + Vocabulary • B1–C1</p>
+  <p>B1 → C1 • No Repeats</p>
 </header>
 
 <main>
+  <div class="progress"><div id="bar"></div></div>
   <div class="card">
     <h2 id="meta"></h2>
     <p id="question"></p>
 
-    <input id="answer" placeholder="Type your answer and press Enter">
-
+    <input id="answer" placeholder="Type answer and press Enter">
     <button onclick="handleAction()" id="actionBtn">Check</button>
-
     <div id="feedback"></div>
   </div>
 </main>
 
 <script>
-let mode = "check";
+/* ---------- DATE HELPERS ---------- */
+const today = () => new Date().toISOString().slice(0,10);
+const week = () => {
+  const d = new Date();
+  const onejan = new Date(d.getFullYear(),0,1);
+  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+};
+
+/* ---------- STORAGE ---------- */
+let seenToday = JSON.parse(localStorage.getItem("seenToday")) || {};
+let seenWeek = JSON.parse(localStorage.getItem("seenWeek")) || {};
+let doneToday = JSON.parse(localStorage.getItem("doneToday")) || 0;
+
+if (seenToday.date !== today()) {
+  seenToday = { date: today(), ids: [] };
+  doneToday = 0;
+}
+
+if (seenWeek.week !== week()) {
+  seenWeek = { week: week(), ids: [] };
+}
+
+function saveProgress() {
+  localStorage.setItem("seenToday", JSON.stringify(seenToday));
+  localStorage.setItem("seenWeek", JSON.stringify(seenWeek));
+  localStorage.setItem("doneToday", doneToday);
+}
+
+/* ---------- POOLS ---------- */
+const grammar = [
+  {id:"g1",lvl:"B1",q:"Ich ___ mehr Deutsch lernen.",a:"möchte"},
+  {id:"g2",lvl:"B1",q:"Er bleibt zu Hause, ___ es regnet.",a:"weil"},
+  {id:"g3",lvl:"B2",q:"Wenn ich Zeit ___, würde ich reisen.",a:"hätte"},
+  {id:"g4",lvl:"C1",q:"Kaum ___ er da, begann es.",a:"war"},
+];
+
+const vocab = [
+  {id:"v1",lvl:"B1",q:"arbeiten",a:"work"},
+  {id:"v2",lvl:"B1",q:"der Alltag",a:"daily life"},
+  {id:"v3",lvl:"B2",q:"vermeiden",a:"avoid"},
+  {id:"v4",lvl:"C1",q:"die Voraussetzung",a:"prerequisite"},
+];
+
+/* ---------- GENERATOR ---------- */
 let current = null;
+let mode = "check";
 
-/* ---------- GRAMMAR POOL ---------- */
-const grammarPool = [
-  { level:"B1", q:"Ich ___ mehr Deutsch lernen.", a:"möchte" },
-  { level:"B1", q:"Er bleibt zu Hause, ___ es regnet.", a:"weil" },
-  { level:"B1", q:"Gestern ___ ich lange gearbeitet.", a:"habe" },
+function generateExercise() {
+  const pool = [...grammar, ...vocab]
+    .filter(x =>
+      !seenToday.ids.includes(x.id) &&
+      !seenWeek.ids.includes(x.id)
+    );
 
-  { level:"B2", q:"Wenn ich mehr Zeit ___, würde ich reisen.", a:"hätte" },
-  { level:"B2", q:"Er tut so, ___ ob er alles wüsste.", a:"als" },
-
-  { level:"C1", q:"Kaum ___ er angekommen, begann das Meeting.", a:"war" },
-  { level:"C1", q:"Je mehr man übt, ___ besser wird man.", a:"desto" }
-];
-
-/* ---------- VOCABULARY POOL ---------- */
-const vocabPool = [
-  { level:"B1", de:"arbeiten", en:"work" },
-  { level:"B1", de:"der Alltag", en:"daily life" },
-  { level:"B1", de:"die Pause", en:"break" },
-
-  { level:"B2", de:"die Verantwortung", en:"responsibility" },
-  { level:"B2", de:"vermeiden", en:"avoid" },
-
-  { level:"C1", de:"die Voraussetzung", en:"prerequisite" },
-  { level:"C1", de:"durchsetzen", en:"enforce" }
-];
-
-/* ---------- RANDOM GENERATOR ---------- */
-function randomExercise() {
-  if (Math.random() < 0.5) {
-    const g = grammarPool[Math.floor(Math.random()*grammarPool.length)];
-    return { type:"grammar", ...g };
-  } else {
-    const v = vocabPool[Math.floor(Math.random()*vocabPool.length)];
-    return {
-      type:"vocab",
-      level:v.level,
-      q:`What is the English meaning of: <b>${v.de}</b>?`,
-      a:v.en
-    };
+  if (pool.length === 0) {
+    seenWeek.ids = [];
+    return generateExercise();
   }
+
+  return pool[Math.floor(Math.random()*pool.length)];
 }
 
 /* ---------- LOAD ---------- */
 function loadExercise() {
-  current = randomExercise();
+  current = generateExercise();
   document.getElementById("meta").innerText =
-    `${current.type === "grammar" ? "Grammar" : "Vocabulary"} • Level ${current.level}`;
-  document.getElementById("question").innerHTML = current.q;
+    `${current.lvl} • ${current.id.startsWith("g") ? "Grammar" : "Vocabulary"}`;
+  document.getElementById("question").innerHTML =
+    current.id.startsWith("g")
+      ? current.q
+      : `What is the English meaning of <b>${current.q}</b>?`;
+
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerText = "";
   document.getElementById("actionBtn").innerText = "Check";
   mode = "check";
 }
 
-/* ---------- CHECK / NEXT ---------- */
+/* ---------- CHECK ---------- */
 function handleAction() {
-  if (mode === "check") checkAnswer();
-  else loadExercise();
-}
+  if (mode === "check") {
+    const user = document.getElementById("answer").value.trim().toLowerCase();
+    const correct = current.a.toLowerCase();
+    const fb = document.getElementById("feedback");
 
-function checkAnswer() {
-  const user = document.getElementById("answer").value.trim().toLowerCase();
-  const correct = current.a.toLowerCase();
-  const fb = document.getElementById("feedback");
+    if (user === correct) {
+      fb.style.color = "var(--correct)";
+      fb.innerText = "✔ Correct!";
+    } else {
+      fb.style.color = "var(--wrong)";
+      fb.innerHTML = `✘ Correct answer: <b>${current.a}</b>`;
+    }
 
-  if (user === correct) {
-    fb.style.color = "var(--correct)";
-    fb.innerHTML = "✔ Correct!";
+    seenToday.ids.push(current.id);
+    seenWeek.ids.push(current.id);
+    doneToday++;
+    saveProgress();
+    updateBar();
+
+    document.getElementById("actionBtn").innerText = "Next";
+    mode = "next";
   } else {
-    fb.style.color = "var(--wrong)";
-    fb.innerHTML = `✘ Correct answer: <b>${current.a}</b>`;
+    loadExercise();
   }
-
-  document.getElementById("actionBtn").innerText = "Next";
-  mode = "next";
 }
 
-/* ---------- ENTER KEY ---------- */
+/* ---------- PROGRESS BAR ---------- */
+function updateBar() {
+  const dailyTarget = 20;
+  const pct = Math.min(100, (doneToday/dailyTarget)*100);
+  document.getElementById("bar").style.width = pct + "%";
+}
+
+/* ---------- ENTER ---------- */
 document.getElementById("answer").addEventListener("keydown", e => {
   if (e.key === "Enter") handleAction();
 });
 
 /* ---------- START ---------- */
+updateBar();
 loadExercise();
 </script>
 
