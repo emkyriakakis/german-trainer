@@ -1,107 +1,168 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>German Trainer – Grammar Progress</title>
+
+<style>
+:root {
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --text:#222;
+  --primary:#2563eb;
+  --correct:#16a34a;
+  --wrong:#dc2626;
+}
+
+body {
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header {
+  background:var(--primary);
+  color:white;
+  padding:16px;
+  text-align:center;
+}
+
+main {
+  max-width:750px;
+  margin:auto;
+  padding:20px;
+}
+
+.card {
+  background:var(--card);
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 6px 15px rgba(0,0,0,0.1);
+  animation:slideIn .4s ease;
+  margin-bottom:20px;
+}
+
+.progress {
+  background:#e5e7eb;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+
+.progress div {
+  height:10px;
+  width:0%;
+  background:var(--correct);
+  transition:width .3s ease;
+}
+
+.topic {
+  font-size:14px;
+  margin-top:8px;
+}
+
+.word {
+  padding:8px;
+  background:#e5e7eb;
+  margin:6px;
+  border-radius:6px;
+  cursor:grab;
+}
+
+.drop {
+  padding:8px;
+  background:#fef3c7;
+  margin:6px;
+  border-radius:6px;
+  min-width:160px;
+}
+
+button {
+  padding:10px 16px;
+  background:var(--primary);
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  margin-top:12px;
+}
+
+input {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  font-size:16px;
+}
+
+@keyframes slideIn {
+  from {opacity:0; transform:translateX(20px);}
+  to {opacity:1; transform:translateX(0);}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🇩🇪 German Trainer</h1>
+  <p>Grammar topics • Vocabulary • No repeats</p>
+</header>
+
+<main>
+
+  <!-- GRAMMAR DASHBOARD -->
+  <div class="card">
+    <h3>📊 Grammar Progress</h3>
+    <div id="grammarBars"></div>
+  </div>
+
+  <!-- EXERCISE -->
+  <div class="card">
+    <h2 id="meta"></h2>
+    <div id="content"></div>
+    <div id="feedback"></div>
+    <button onclick="next()">Next</button>
+  </div>
+
+</main>
+
 <script>
-/* ================= STATE ================= */
-let enterMode = "check"; // check → next
-let current = null;
-let dragged = null;
-
-/* ================= DATE HELPERS ================= */
-function today() {
-  return new Date().toISOString().split("T")[0];
-}
-function weekKey() {
-  const d = new Date();
-  const onejan = new Date(d.getFullYear(),0,1);
-  const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
-  return `${d.getFullYear()}-W${week}`;
-}
-
-/* ================= STORAGE ================= */
+/* ---------- STORAGE ---------- */
 let grammarStats = JSON.parse(localStorage.getItem("grammarStats")) || {};
-let seenToday = JSON.parse(localStorage.getItem("seenToday")) || {};
-let seenWeek = JSON.parse(localStorage.getItem("seenWeek")) || {};
-let daily = JSON.parse(localStorage.getItem("daily")) || {
-  date: today(),
-  done: 0,
-  goal: 10,
-  streak: 0,
-  lastDate: null
-};
 
-/* reset daily */
-if (daily.date !== today()) {
-  if (daily.lastDate === new Date(Date.now()-86400000).toISOString().split("T")[0]) {
-    daily.streak++;
-  } else {
-    daily.streak = 1;
-  }
-  daily.lastDate = daily.date;
-  daily.date = today();
-  daily.done = 0;
-  seenToday = {};
-}
-
-/* ================= DATA ================= */
+/* ---------- POOLS ---------- */
 const grammar = [
   {id:"g1",lvl:"B1",topic:"Wünsche",q:"Ich ___ mehr Deutsch lernen.",a:"möchte"},
-  {id:"g2",lvl:"B2",topic:"Wünsche",q:"Ich wünschte, ich ___ mehr Zeit.",a:"hätte"},
-  {id:"g3",lvl:"C1",topic:"Wünsche",q:"Man hätte gewollt, dass er früher ___ .",a:"käme"},
-
-  {id:"g4",lvl:"B1",topic:"Nebensätze",q:"Ich bleibe zu Hause, ___ es regnet.",a:"weil"},
-  {id:"g5",lvl:"B2",topic:"Nebensätze",q:"Er ging, obwohl er ___ müde war.",a:"sehr"},
-  {id:"g6",lvl:"C1",topic:"Nebensätze",q:"Nicht nur ___ er kam, sondern blieb.",a:"dass"},
-
-  {id:"g7",lvl:"B1",topic:"Konjunktiv II",q:"Wenn ich Zeit ___, käme ich.",a:"hätte"},
-  {id:"g8",lvl:"B2",topic:"Konjunktiv II",q:"Er tat so, als ___ er nichts.",a:"wüsste"},
-  {id:"g9",lvl:"C1",topic:"Konjunktiv II",q:"Es wäre besser gewesen, man ___ früher reagiert.",a:"hätte"}
+  {id:"g2",lvl:"B1",topic:"Nebensätze",q:"Er bleibt zu Hause, ___ es regnet.",a:"weil"},
+  {id:"g3",lvl:"B2",topic:"Konjunktiv II",q:"Wenn ich Zeit ___, würde ich reisen.",a:"hätte"},
+  {id:"g4",lvl:"C1",topic:"Inversion",q:"Kaum ___ er da, begann es.",a:"war"}
 ];
 
 const vocab = [
-  {id:"v1",pairs:[["arbeiten","work"],["die Pause","break"],["der Alltag","daily life"]]},
-  {id:"v2",pairs:[["vermeiden","avoid"],["erreichen","achieve"],["die Verantwortung","responsibility"]]}
+  {id:"v1",lvl:"B1",pairs:[["arbeiten","work"],["die Pause","break"],["der Alltag","daily life"]]},
+  {id:"v2",lvl:"B2",pairs:[["vermeiden","avoid"],["die Verantwortung","responsibility"],["erreichen","achieve"]]}
 ];
 
-/* ================= LEVEL LOGIC ================= */
-function topicLevel(topic) {
-  const s = grammarStats[topic];
-  if (!s) return "B1";
-  const p = s.correct / s.done;
-  if (p < 0.6) return "B1";
-  if (p < 0.8) return "B2";
-  return "C1";
-}
+let current = null;
+let dragged = null;
 
-/* ================= GENERATION ================= */
-function generateGrammar() {
-  const topics = [...new Set(grammar.map(g=>g.topic))];
-  const topic = topics[Math.floor(Math.random()*topics.length)];
-  const lvl = topicLevel(topic);
-
-  let pool = grammar.filter(g =>
-    g.topic===topic &&
-    g.lvl===lvl &&
-    !seenToday[g.id] &&
-    !seenWeek[g.id]
-  );
-
-  if (pool.length === 0) {
-    pool = grammar.filter(g=>g.topic===topic && g.lvl===lvl);
-  }
-
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-
+/* ---------- GENERATOR ---------- */
 function generate() {
-  return Math.random()<0.65 ? generateGrammar()
-                            : vocab[Math.floor(Math.random()*vocab.length)];
+  return Math.random() < 0.5
+    ? grammar[Math.floor(Math.random()*grammar.length)]
+    : vocab[Math.floor(Math.random()*vocab.length)];
 }
 
-/* ================= RENDER ================= */
+/* ---------- LOAD ---------- */
 function load() {
-  enterMode = "check";
   current = generate();
   document.getElementById("feedback").innerHTML = "";
   document.getElementById("meta").innerText =
-    current.topic ? `${current.lvl} • ${current.topic}` : "Vocabulary";
+    current.topic
+      ? `${current.lvl} • ${current.topic}`
+      : `${current.lvl} • Vocabulary`;
 
   const c = document.getElementById("content");
 
@@ -111,106 +172,82 @@ function load() {
     c.innerHTML = `
       <p>Match German → English</p>
       <div style="display:flex;gap:20px;">
-        <div>${left.map(p=>`
-          <div draggable="true" ondragstart="dragged='${p[0]}'"
-          class="word">${p[0]}</div>`).join("")}</div>
-        <div>${right.map(r=>`
-          <div class="drop"
+        <div>${left.map(p=>`<div class="word" draggable="true"
+          ondragstart="dragged='${p[0]}'">${p[0]}</div>`).join("")}</div>
+        <div>${right.map(r=>`<div class="drop"
           ondragover="event.preventDefault()"
           ondrop="drop('${r}',this)">${r}</div>`).join("")}</div>
-      </div>`;
+      </div>
+    `;
   } else {
     c.innerHTML = `
       <p>${current.q}</p>
-      <input id="answer" placeholder="Press ENTER" autofocus>
+      <input id="answer" placeholder="Type answer and press Enter">
     `;
     document.getElementById("answer").addEventListener("keydown", e=>{
-      if(e.key==="Enter") handleEnter();
+      if(e.key==="Enter") checkGrammar();
     });
   }
 }
 
-/* ================= ENTER HANDLER ================= */
-function handleEnter() {
-  if (enterMode === "check") {
-    checkGrammar();
-    enterMode = "next";
-  } else {
-    next();
-  }
-}
-
-/* ================= CHECK ================= */
+/* ---------- CHECK ---------- */
 function checkGrammar() {
   const user = document.getElementById("answer").value.trim().toLowerCase();
   const fb = document.getElementById("feedback");
-  const ok = user === current.a;
+  const correct = user === current.a;
 
-  if (!grammarStats[current.topic])
-    grammarStats[current.topic] = {done:0,correct:0};
+  if (!grammarStats[current.topic]) {
+    grammarStats[current.topic] = {done:0, correct:0};
+  }
 
   grammarStats[current.topic].done++;
-  if (ok) grammarStats[current.topic].correct++;
+  if (correct) grammarStats[current.topic].correct++;
 
-  fb.style.color = ok ? "green" : "red";
-  fb.innerHTML = ok ? "✔ Correct!" : `✘ Correct: <b>${current.a}</b>`;
+  fb.style.color = correct ? "var(--correct)" : "var(--wrong)";
+  fb.innerHTML = correct ? "✔ Correct!" : `✘ Correct: <b>${current.a}</b>`;
 
-  seenToday[current.id] = true;
-  seenWeek[current.id] = true;
-  daily.done++;
-
-  saveAll();
-  renderDaily();
+  localStorage.setItem("grammarStats", JSON.stringify(grammarStats));
   renderGrammarBars();
 }
 
-/* ================= VOCAB ================= */
 function drop(en, el) {
-  const p = current.pairs.find(x=>x[1]===en);
-  if (p[0]===dragged) {
-    el.innerText="✔ "+en;
+  const pair = current.pairs.find(p=>p[1]===en);
+  if (pair[0] === dragged) {
     el.style.background="#bbf7d0";
+    el.innerText="✔ "+en;
   } else {
-    el.innerHTML=`✘ ${p[0]} → ${p[1]}`;
     el.style.background="#fecaca";
+    el.innerHTML=`✘ ${pair[0]} → ${pair[1]}`;
   }
-  enterMode="next";
 }
 
-/* ================= DASHBOARD ================= */
+/* ---------- DASHBOARD ---------- */
 function renderGrammarBars() {
-  const box=document.getElementById("grammarBars");
-  box.innerHTML="";
-  for(let t in grammarStats){
-    const s=grammarStats[t];
-    const p=Math.round(s.correct/s.done*100);
-    box.innerHTML+=`
-      <div>${t} (${p}%)</div>
-      <div class="progress"><div style="width:${p}%"></div></div>`;
+  const box = document.getElementById("grammarBars");
+  box.innerHTML = "";
+
+  for (let topic in grammarStats) {
+    const s = grammarStats[topic];
+    const pct = Math.round((s.correct / s.done) * 100);
+
+    box.innerHTML += `
+      <div class="topic">${topic} (${pct}%)</div>
+      <div class="progress"><div style="width:${pct}%"></div></div>
+    `;
   }
 }
 
-function renderDaily() {
-  const pct=Math.min(100,Math.round(daily.done/daily.goal*100));
-  document.getElementById("dailyBar").style.width=pct+"%";
-  document.getElementById("dailyText").innerText=
-    `${daily.done}/${daily.goal} • 🔥 ${daily.streak} day streak`;
+/* ---------- NEXT ---------- */
+function next() {
+  load();
 }
 
-/* ================= SAVE ================= */
-function saveAll() {
-  localStorage.setItem("grammarStats",JSON.stringify(grammarStats));
-  localStorage.setItem("seenToday",JSON.stringify(seenToday));
-  localStorage.setItem("seenWeek",JSON.stringify(seenWeek));
-  localStorage.setItem("daily",JSON.stringify(daily));
-}
-
-/* ================= UTILS ================= */
-function next(){load();}
 function shuffle(a){return a.sort(()=>Math.random()-0.5);}
 
-/* ================= START ================= */
+/* ---------- START ---------- */
 renderGrammarBars();
-renderDaily();
 load();
 </script>
+
+</body>
+</html>
