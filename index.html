@@ -133,18 +133,33 @@ input {
 let grammarStats = JSON.parse(localStorage.getItem("grammarStats")) || {};
 
 /* ---------- GRAMMAR POOL (LEVELLED) ---------- */
-const grammar = [
-  {id:"g1",lvl:"B1",topic:"Wünsche",q:"Ich ___ mehr Deutsch lernen.",a:"möchte"},
-  {id:"g2",lvl:"B2",topic:"Wünsche",q:"Ich wünschte, ich ___ mehr Zeit.",a:"hätte"},
-  {id:"g3",lvl:"C1",topic:"Wünsche",q:"Er äußerte den Wunsch, man ___ früher begonnen.",a:"hätte"},
-
-  {id:"g4",lvl:"B1",topic:"Nebensätze",q:"Ich bleibe zu Hause, ___ es regnet.",a:"weil"},
-  {id:"g5",lvl:"B2",topic:"Nebensätze",q:"Er ging, obwohl er ___ müde war.",a:"sehr"},
-  {id:"g6",lvl:"C1",topic:"Nebensätze",q:"Nicht nur ___ er kam, sondern er blieb.",a:"dass"},
-
-  {id:"g7",lvl:"B1",topic:"Konjunktiv II",q:"Wenn ich Geld ___, reiste ich.",a:"hätte"},
-  {id:"g8",lvl:"B2",topic:"Konjunktiv II",q:"Er tat so, als ___ er nichts.",a:"wüsste"},
-  {id:"g9",lvl:"C1",topic:"Konjunktiv II",q:"Es wäre besser gewesen, man ___ früher reagiert.",a:"hätte"}
+const writingTasks = [
+  {
+    id: "w1",
+    lvl: "B1",
+    topic: "Nebensätze",
+    prompt: "Schreibe einen Satz mit „weil“ über deine Arbeit.",
+    mustInclude: ["weil"],
+    verbAtEnd: true,
+    model: "Ich lerne Deutsch, weil ich in der Schweiz arbeite."
+  },
+  {
+    id: "w2",
+    lvl: "B2",
+    topic: "obwohl",
+    prompt: "Schreibe einen Satz mit „obwohl“ über Zeit.",
+    mustInclude: ["obwohl"],
+    verbAtEnd: true,
+    model: "Ich lerne Deutsch, obwohl ich wenig Zeit habe."
+  },
+  {
+    id: "w3",
+    lvl: "C1",
+    topic: "Konjunktiv II",
+    prompt: "Schreibe einen Satz mit Konjunktiv II (hätte/wäre).",
+    mustInclude: ["hätte","wäre","würde"],
+    model: "Wenn ich mehr Zeit hätte, würde ich mehr lesen."
+  }
 ];
 
 /* ---------- VOCAB ---------- */
