@@ -19,24 +19,52 @@
   --reading:#14b8a6;
 }
 body {margin:0;font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
-header {background:var(--primary);color:white;padding:20px;text-align:center;box-shadow:0 4px 8px rgba(0,0,0,0.1);}
+header {
+  background: linear-gradient(90deg,#2563eb,#3b82f6);
+  color:white;padding:20px;text-align:center;box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
 header h1 {margin:0;font-size:2em;}
 header p {margin:4px;font-size:1em;}
 main {max-width:900px;margin:auto;padding:20px;}
-.card {background:var(--card);padding:20px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,0.1);margin-bottom:20px;transition:transform .3s, box-shadow .3s;}
-.card:hover{transform:translateY(-5px);box-shadow:0 12px 25px rgba(0,0,0,0.15);}
-button{padding:10px 16px;background:var(--primary);color:white;border:none;border-radius:8px;cursor:pointer;margin-top:12px;transition:background .2s;}
-button:hover{background:#1d4ed8;}
-.choice{display:block;margin:8px 0;padding:10px;background:#e5e7eb;border-radius:6px;cursor:pointer;transition:background .2s, transform .2s;}
-.choice:hover{background:#dbeafe;transform:scale(1.02);}
-input{width:100%;padding:10px;margin-top:10px;font-size:16px;}
+.card {
+  background:var(--card);
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.1);
+  margin-bottom:20px;
+  transition:transform .3s, box-shadow .3s;
+}
+.card:hover{transform:translateY(-5px);box-shadow:0 12px 25px rgba(0,0,0,0.2);}
+button{
+  padding:12px 18px;
+  background:var(--primary);
+  color:white;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  margin-top:12px;
+  font-weight:bold;
+  transition:background .3s, transform .2s;
+}
+button:hover{background:#1d4ed8;transform:scale(1.05);}
+.choice{
+  display:block;
+  margin:10px 0;
+  padding:12px;
+  background:#e5e7eb;
+  border-radius:8px;
+  cursor:pointer;
+  transition: all .2s;
+}
+.choice:hover{background:#dbeafe; transform:scale(1.03);}
+input{width:100%;padding:10px;margin-top:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;}
 #feedback{margin-top:12px;font-weight:bold;font-size:1.1em;transition:all .3s;}
-#dailyBarContainer{background:#e5e7eb;border-radius:10px;overflow:hidden;height:14px;margin-top:5px;}
-#dailyBar{height:14px;width:0%;background:var(--primary);transition:width .3s;}
-.level {display:inline-block;padding:2px 8px;border-radius:8px;color:white;margin-left:8px;font-size:0.8em;}
+#dailyBarContainer{background:#e5e7eb;border-radius:10px;overflow:hidden;height:16px;margin-top:8px;}
+#dailyBar{height:16px;width:0%;background:var(--primary);transition:width .4s;}
+.level {display:inline-block;padding:2px 10px;border-radius:12px;color:white;margin-left:8px;font-size:0.85em;}
 .topic-icon {margin-right:8px;}
-.correct-choice{background:var(--correct)!important;color:white;}
-.wrong-choice{background:var(--wrong)!important;color:white;}
+.correct-choice{background:var(--correct)!important;color:white;transform:scale(1.05);}
+.wrong-choice{background:var(--wrong)!important;color:white;transform:scale(1.05);}
 </style>
 </head>
 <body>
@@ -240,8 +268,8 @@ function renderGrammarBars(){
     }[t]||"var(--primary)";
     box.innerHTML+=`
       <div>${t} (${Math.round(p)}%)</div>
-      <div class="progress" style="background:#e5e7eb;border-radius:10px;height:12px;margin-bottom:6px;">
-        <div style="width:${p}%;height:12px;background:${color};border-radius:10px;"></div>
+      <div class="progress" style="background:#e5e7eb;border-radius:10px;height:14px;margin-bottom:8px;">
+        <div style="width:${p}%;height:14px;background:${color};border-radius:10px;"></div>
       </div>
     `;
   }
