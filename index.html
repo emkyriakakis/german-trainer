@@ -301,6 +301,37 @@ function handleEnter() {
     next();
   }
 }
+function checkWriting() {
+  const text = document.getElementById("answer").value.toLowerCase();
+  const fb = document.getElementById("feedback");
+  let ok = true;
+  let hints = [];
+
+  if (current.mustInclude) {
+    if (!current.mustInclude.some(w => text.includes(w))) {
+      ok = false;
+      hints.push("🔎 Verwende die richtige Struktur (z.B. „obwohl“, „weil“).");
+    }
+  }
+
+  if (current.verbAtEnd) {
+    const words = text.split(" ");
+    if (!words[words.length-1].match(/(habe|hat|bin|ist|war|wäre|hätte|würde|arbeite|lerne|komme)/)) {
+      ok = false;
+      hints.push("📌 Das Verb sollte am Ende stehen.");
+    }
+  }
+
+  fb.style.color = ok ? "green" : "orange";
+  fb.innerHTML = ok
+    ? "✔ Gute Struktur!"
+    : hints.join("<br>") + `<hr>✔ Beispiel:<br><b>${current.model}</b>`;
+
+  daily.done++;
+  enterMode = "next";
+  saveAll();
+  renderDaily();
+}
 
 /* ================= CHECK ================= */
 function checkGrammar() {
