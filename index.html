@@ -2,41 +2,45 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>German Trainer</title>
+<title>German Trainer – Adaptive</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 body{font-family:system-ui;background:#f3f4f6;margin:0}
-header{background:#2563eb;color:white;padding:20px;text-align:center}
-main{max-width:800px;margin:auto;padding:20px}
-.card{background:white;padding:20px;border-radius:14px;margin-bottom:20px;
-box-shadow:0 8px 20px rgba(0,0,0,.1)}
-.choice{padding:12px;margin:8px 0;background:#e5e7eb;border-radius:8px;
-cursor:pointer}
+header{background:#1e40af;color:white;padding:20px;text-align:center}
+main{max-width:900px;margin:auto;padding:20px}
+.card{background:white;padding:20px;border-radius:16px;margin-bottom:20px;box-shadow:0 10px 25px rgba(0,0,0,.1)}
+h2,h3{margin-top:0}
+.choice{padding:12px;margin:8px 0;background:#e5e7eb;border-radius:10px;cursor:pointer}
 .choice:hover{background:#dbeafe}
 .correct{background:#16a34a;color:white}
 .wrong{background:#dc2626;color:white}
-button{padding:12px 20px;border:none;border-radius:8px;background:#2563eb;
-color:white;font-weight:bold;cursor:pointer}
-.progress{background:#e5e7eb;border-radius:10px;height:14px}
+button{padding:12px 20px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:600;cursor:pointer}
+.progress{background:#e5e7eb;border-radius:10px;height:14px;margin-bottom:10px}
 .progress div{height:14px;border-radius:10px;background:#16a34a}
+.badge{display:inline-block;padding:4px 10px;border-radius:12px;background:#e0e7ff;color:#1e40af;font-size:12px}
 </style>
 </head>
-
 <body>
 <header>
 <h1>🇩🇪 German Trainer</h1>
-<p>Multiple-choice • Adaptive • Unlimited</p>
+<p>Adaptive • Reading • Vocabulary • Daily Goals</p>
 </header>
-
 <main>
 
 <div class="card">
-<h3>📊 Progress</h3>
+<h3>📅 Daily Goal</h3>
+<p><span id="dailyDone">0</span> / 20 exercises completed</p>
+<div class="progress"><div id="dailyBar" style="width:0%"></div></div>
+<p>🔥 Streak: <span id="streak">0</span> days</p>
+</div>
+
+<div class="card">
+<h3>📊 Topic Progress</h3>
 <div id="progressBox"></div>
 </div>
 
 <div class="card">
+<span class="badge" id="level">B1</span>
 <h2 id="question"></h2>
 <div id="choices"></div>
 <div id="feedback"></div>
@@ -44,122 +48,129 @@ color:white;font-weight:bold;cursor:pointer}
 </div>
 
 </main>
-
 <script>
-/* ====== STATE ====== */
+/* ===== STATE ===== */
 let checked=false;
 let current=null;
-let streak=0;
+let correctStreak=0;
+let dailyDone=Number(localStorage.getItem('dailyDone'))||0;
+let lastDate=localStorage.getItem('lastDate');
+let today=new Date().toDateString();
+let streak=Number(localStorage.getItem('streak'))||0;
 
-let stats=JSON.parse(localStorage.getItem("stats")) || {
-  Grammar:{done:0,correct:0},
-  Articles:{done:0,correct:0},
-  Reading:{done:0,correct:0}
-};
-
-/* ====== DATA (CORRECT GERMAN) ====== */
-const grammarTemplates=[
-  {
-    topic:"Grammar",
-    q:"Ich lerne Deutsch, ___ ich in der Schweiz arbeite.",
-    options:["weil","obwohl","damit"],
-    answer:"weil"
-  },
-  {
-    topic:"Grammar",
-    q:"Wenn ich mehr Zeit ___, würde ich mehr lesen.",
-    options:["hätte","habe","hatte"],
-    answer:"hätte"
-  }
-];
-
-const articles=[
-  {topic:"Articles",q:"___ Apfel ist rot.",options:["Der","Die","Das"],answer:"Der"},
-  {topic:"Articles",q:"___ Mädchen spielt.",options:["Der","Die","Das"],answer:"Das"}
-];
-
-const readings=[
-  {
-    topic:"Reading",
-    text:"Anna arbeitet in Basel. Sie lernt Deutsch, weil sie dort lebt.",
-    q:"Warum lernt Anna Deutsch?",
-    options:[
-      "Weil sie in Basel lebt",
-      "Weil sie Urlaub macht",
-      "Weil sie Lehrerin ist"
-    ],
-    answer:"Weil sie in Basel lebt"
-  }
-];
-
-/* ====== GENERATOR ====== */
-function generate(){
-  const pools=[grammarTemplates,articles,readings];
-  const pool=pools[Math.floor(Math.random()*pools.length)];
-  return JSON.parse(JSON.stringify(
-    pool[Math.floor(Math.random()*pool.length)]
-  ));
+if(lastDate!==today){
+  dailyDone=0;
+  localStorage.setItem('dailyDone',0);
+  if(lastDate){streak++;localStorage.setItem('streak',streak)}
+  localStorage.setItem('lastDate',today);
 }
 
-/* ====== RENDER ====== */
+let stats=JSON.parse(localStorage.getItem('stats'))||{
+  Grammar:{done:0,correct:0},
+  Reading:{done:0,correct:0},
+  Vocabulary:{done:0,correct:0}
+};
+
+/* ===== LEVEL ===== */
+function getLevel(){
+  if(correctStreak>=8) return 'C1';
+  if(correctStreak>=4) return 'B2';
+  return 'B1';
+}
+
+/* ===== DATA ===== */
+const grammar={
+  B1:[
+    {topic:'Grammar',q:'Ich lerne Deutsch, ___ ich in Basel arbeite.',options:['weil','obwohl','damit'],a:'weil'},
+    {topic:'Grammar',q:'Er bleibt zu Hause, ___ es regnet.',options:['weil','trotzdem','oder'],a:'weil'}
+  ],
+  B2:[
+    {topic:'Grammar',q:'Wenn ich mehr Zeit ___, würde ich reisen.',options:['hätte','habe','hat'],a:'hätte'}
+  ],
+  C1:[
+    {topic:'Grammar',q:'Hätte er früher reagiert, ___ das Problem kleiner gewesen.',options:['wäre','ist','war'],a:'wäre'}
+  ]
+};
+
+const readings={
+  B1:[{
+    topic:'Reading',
+    text:'Maria lebt in Zürich. Sie arbeitet in einem Büro und lernt Deutsch.',
+    q:'Warum lernt Maria Deutsch?',
+    options:['Sie arbeitet in Zürich','Sie reist nach Deutschland','Sie ist Lehrerin'],
+    a:'Sie arbeitet in Zürich'
+  }],
+  B2:[{
+    topic:'Reading',
+    text:'Thomas ist nach Basel gezogen, um eine neue Stelle anzutreten.',
+    q:'Warum ist Thomas nach Basel gezogen?',
+    options:['Wegen einer neuen Stelle','Wegen des Wetters','Wegen seiner Familie'],
+    a:'Wegen einer neuen Stelle'
+  }]
+};
+
+const vocab=[
+  {topic:'Vocabulary',q:'Was bedeutet "der Vertrag"?',options:['agreement','street','holiday'],a:'agreement'},
+  {topic:'Vocabulary',q:'Was ist die Mehrzahl von "der Mann"?',options:['die Männer','die Manne','die Manns'],a:'die Männer'}
+];
+
+/* ===== GENERATE ===== */
+function generate(){
+  const level=getLevel();
+  document.getElementById('level').innerText=level;
+  const pools=[
+    ...grammar[level],
+    ...(readings[level]||[]),
+    ...vocab
+  ];
+  return JSON.parse(JSON.stringify(pools[Math.floor(Math.random()*pools.length)]));
+}
+
+/* ===== RENDER ===== */
 function render(){
   checked=false;
   current=generate();
-  document.getElementById("feedback").innerHTML="";
-  document.getElementById("question").innerHTML =
-    current.text ? `<p>${current.text}</p><p>${current.q}</p>` : current.q;
-
-  document.getElementById("choices").innerHTML =
-    current.options.map(o =>
-      `<div class="choice" onclick="select('${o}',this)">${o}</div>`
-    ).join("");
+  document.getElementById('feedback').innerHTML='';
+  document.getElementById('question').innerHTML=current.text?`<p>${current.text}</p><p>${current.q}</p>`:current.q;
+  document.getElementById('choices').innerHTML=current.options.map(o=>
+    `<div class="choice" onclick="select('${o}',this)">${o}</div>`
+  ).join('');
 }
 
-/* ====== CHECK ====== */
+/* ===== CHECK ===== */
 function select(val,el){
   if(checked) return;
   checked=true;
-
-  const correct = val===current.answer;
-  el.classList.add(correct?"correct":"wrong");
-
-  document.getElementById("feedback").innerHTML =
-    correct ? "✔ Correct" : `✘ Correct answer: <b>${current.answer}</b>`;
+  const ok=val===current.a;
+  el.classList.add(ok?'correct':'wrong');
+  document.getElementById('feedback').innerHTML= ok?'✔ Correct':`✘ Correct answer: <b>${current.a}</b>`;
 
   stats[current.topic].done++;
-  if(correct){stats[current.topic].correct++; streak++}
-  else streak=0;
+  if(ok){stats[current.topic].correct++;correctStreak++;}
+  else correctStreak=0;
 
-  localStorage.setItem("stats",JSON.stringify(stats));
-  renderProgress();
+  dailyDone++;localStorage.setItem('dailyDone',dailyDone);
+  localStorage.setItem('stats',JSON.stringify(stats));
+
+  updateUI();
 }
 
-/* ====== ENTER HANDLER ====== */
-document.addEventListener("keydown",e=>{
-  if(e.key==="Enter"){
-    if(!checked) return;
-    render();
-  }
-});
+/* ===== ENTER ===== */
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&checked)render();});
 
-/* ====== DASHBOARD ====== */
-function renderProgress(){
-  const box=document.getElementById("progressBox");
-  box.innerHTML="";
-  for(let t in stats){
-    const s=stats[t];
-    const p=s.done?Math.round(s.correct/s.done*100):0;
-    box.innerHTML+=`
-      <div>${t} (${p}%)</div>
-      <div class="progress"><div style="width:${p}%"></div></div>
-    `;
-  }
+/* ===== UI ===== */
+function updateUI(){
+  document.getElementById('dailyDone').innerText=dailyDone;
+  document.getElementById('dailyBar').style.width=Math.min(100,dailyDone/20*100)+'%';
+  document.getElementById('streak').innerText=streak;
+  const box=document.getElementById('progressBox');box.innerHTML='';
+  for(let t in stats){const s=stats[t];const p=s.done?Math.round(s.correct/s.done*100):0;
+    box.innerHTML+=`<div>${t} (${p}%)</div><div class="progress"><div style="width:${p}%"></div></div>`;}
 }
 
-/* ====== INIT ====== */
-renderProgress();
-render();
-document.getElementById("nextBtn").onclick=render;
+/* ===== INIT ===== */
+updateUI();render();
+document.getElementById('nextBtn').onclick=render;
 </script>
 </body>
 </html>
