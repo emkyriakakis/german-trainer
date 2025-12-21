@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>German Trainer – Adaptive</title>
+<title>German Trainer – Serious Version</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:system-ui;background:#f3f4f6;margin:0}
@@ -17,21 +17,20 @@ h2,h3{margin-top:0}
 button{padding:12px 20px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:600;cursor:pointer}
 .progress{background:#e5e7eb;border-radius:10px;height:14px;margin-bottom:10px}
 .progress div{height:14px;border-radius:10px;background:#16a34a}
-.badge{display:inline-block;padding:4px 10px;border-radius:12px;background:#e0e7ff;color:#1e40af;font-size:12px}
+.badge{display:inline-block;padding:4px 10px;border-radius:12px;background:#e0e7ff;color:#1e40af;font-size:12px;margin-right:6px}
 </style>
 </head>
 <body>
 <header>
 <h1>🇩🇪 German Trainer</h1>
-<p>Adaptive • Correct German • No Repetition</p>
+<p>Correct German • No Repetition • Adaptive Difficulty</p>
 </header>
 <main>
 
 <div class="card">
-<h3>📅 Daily Goal</h3>
-<p><span id="dailyDone">0</span> / 20 exercises completed</p>
+<h3>📅 Daily Progress</h3>
+<p><span id="dailyDone">0</span> / 20 exercises</p>
 <div class="progress"><div id="dailyBar" style="width:0%"></div></div>
-<p>🔥 Streak: <span id="streak">0</span> days</p>
 </div>
 
 <div class="card">
@@ -41,7 +40,6 @@ button{padding:12px 20px;border:none;border-radius:10px;background:#2563eb;color
 
 <div class="card">
 <span class="badge" id="level">B1</span>
-<span class="badge" id="xpBadge">XP: 0</span>
 <h2 id="question"></h2>
 <div id="choices"></div>
 <div id="feedback"></div>
@@ -50,141 +48,128 @@ button{padding:12px 20px;border:none;border-radius:10px;background:#2563eb;color
 
 </main>
 <script>
-/* ===== STATE ===== */
-let checked = false;
-let current = null;
-let dailyDone = Number(localStorage.getItem('dailyDone')) || 0;
-let lastDate = localStorage.getItem('lastDate');
-let today = new Date().toDateString();
-let streak = Number(localStorage.getItem('streak')) || 0;
+/* ===== CORE STATE ===== */
+let checked=false;
+let current=null;
+let dailyDone=Number(localStorage.getItem('dailyDone'))||0;
+let stats=JSON.parse(localStorage.getItem('stats'))||{
+  Articles:{done:0,correct:0}
+};
+let usedIds=JSON.parse(localStorage.getItem('usedIds'))||[];
 
-if (lastDate !== today) {
-  dailyDone = 0;
-  localStorage.setItem('dailyDone', 0);
-  if (lastDate) streak++;
-  localStorage.setItem('streak', streak);
-  localStorage.setItem('lastDate', today);
-  localStorage.removeItem('usedIds');
+/* ===== RESET DAILY ===== */
+const today=new Date().toDateString();
+if(localStorage.getItem('lastDate')!==today){
+  dailyDone=0;
+  usedIds=[];
+  localStorage.setItem('lastDate',today);
+  localStorage.setItem('usedIds','[]');
 }
 
-let usedIds = JSON.parse(localStorage.getItem('usedIds')) || [];
-
-let stats = JSON.parse(localStorage.getItem('stats')) || {
-  Articles: { done: 0, correct: 0 }
-};
-
-/* ===== SMART CONTENT POOLS ===== */
-const nouns = [
-  { w: 'Hund', a: 'der' },
-  { w: 'Apfel', a: 'der' },
-  { w: 'Baum', a: 'der' },
-  { w: 'Frau', a: 'die' },
-  { w: 'Stadt', a: 'die' },
-  { w: 'Zeit', a: 'die' },
-  { w: 'Haus', a: 'das' },
-  { w: 'Kind', a: 'das' },
-  { w: 'Auto', a: 'das' }
+/* ===== LINGUISTIC DATA ===== */
+const nouns=[
+ {w:'Hund',g:'m',akk:'den',dat:'dem'},
+ {w:'Apfel',g:'m',akk:'den',dat:'dem'},
+ {w:'Mann',g:'m',akk:'den',dat:'dem'},
+ {w:'Frau',g:'f',akk:'die',dat:'der'},
+ {w:'Katze',g:'f',akk:'die',dat:'der'},
+ {w:'Kind',g:'n',akk:'das',dat:'dem'}
 ];
 
-const subjects = ['Der Mann', 'Die Frau', 'Das Kind', 'Mein Freund', 'Meine Schwester'];
-const verbs = ['kauft', 'sieht', 'mag', 'findet', 'braucht'];
-const places = ['im Park', 'im Supermarkt', 'zu Hause', 'in der Stadt', 'am Abend'];
+const subjects=[
+ {w:'Der Mann',g:'m'},
+ {w:'Die Frau',g:'f'}
+];
 
-function uid(str) {
-  return btoa(unescape(encodeURIComponent(str))).slice(0, 30);
-}
+const verbsAkk=[
+ {v:'sieht',case:'akk'},
+ {v:'kauft',case:'akk'},
+ {v:'mag',case:'akk'}
+];
 
-/* ===== GENERATOR (NO REPETITION) ===== */
-function generateExercise() {
-  let ex, id;
-  let tries = 0;
+const verbsDat=[
+ {v:'hilft',case:'dat'},
+ {v:'dankt',case:'dat'}
+];
 
-  do {
-    tries++;
-    const n = nouns[Math.floor(Math.random() * nouns.length)];
-    const s = subjects[Math.floor(Math.random() * subjects.length)];
-    const v = verbs[Math.floor(Math.random() * verbs.length)];
-    const p = places[Math.floor(Math.random() * places.length)];
+const places=['im Park','zu Hause','im Supermarkt'];
 
-    ex = {
-      topic: 'Articles',
-      q: `${s} ${v} ___ ${n.w} ${p}.`,
-      options: shuffle(['der', 'die', 'das']),
-      a: n.a
-    };
+/* ===== HELPERS ===== */
+function uid(s){return btoa(s).slice(0,20)}
+function shuffle(a){return a.sort(()=>Math.random()-0.5)}
 
-    id = uid(ex.q + ex.a);
-  } while (usedIds.includes(id) && tries < 100);
+/* ===== GENERATOR (CORRECT GERMAN ONLY) ===== */
+function generateArticleExercise(){
+ let ex,id,tries=0;
+ do{
+  tries++;
+  const subj=subjects[Math.floor(Math.random()*subjects.length)];
+  const isDat=Math.random()>0.5;
+  const verb=(isDat?verbsDat:verbsAkk)[Math.floor(Math.random()*(isDat?verbsDat:verbsAkk).length)];
+  const noun=nouns[Math.floor(Math.random()*nouns.length)];
+  const place=places[Math.floor(Math.random()*places.length)];
+  const correct=isDat?noun.dat:noun.akk;
 
-  usedIds.push(id);
-  localStorage.setItem('usedIds', JSON.stringify(usedIds));
-  ex.id = id;
-  return ex;
-}
-
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
+  ex={
+    topic:'Articles',
+    q:`${subj.w} ${verb.v} ___ ${noun.w} ${place}. (${isDat?'Dativ':'Akkusativ'})`,
+    options:shuffle(['der','die','das','den','dem']),
+    a:correct
+  };
+  id=uid(ex.q+ex.a);
+ }while(usedIds.includes(id)&&tries<100);
+ usedIds.push(id);
+ localStorage.setItem('usedIds',JSON.stringify(usedIds));
+ ex.id=id;
+ return ex;
 }
 
 /* ===== RENDER ===== */
-function render() {
-  checked = false;
-  current = generateExercise();
-  document.getElementById('feedback').innerHTML = '';
-  document.getElementById('question').innerText = current.q;
-  document.getElementById('choices').innerHTML = current.options
-    .map(o => `<div class="choice" onclick="select('${o}',this)">${o}</div>`)
-    .join('');
+function render(){
+ checked=false;
+ current=generateArticleExercise();
+ document.getElementById('question').innerText=current.q;
+ document.getElementById('feedback').innerHTML='';
+ document.getElementById('choices').innerHTML=current.options.map(o=>
+   `<div class="choice" onclick="select('${o}',this)">${o}</div>`).join('');
 }
 
 /* ===== CHECK ===== */
-function select(val, el) {
-  if (checked) return;
-  checked = true;
-
-  const ok = val === current.a;
-  el.classList.add(ok ? 'correct' : 'wrong');
-
-  document.getElementById('feedback').innerHTML = ok
-    ? '✔ Richtig'
-    : `✘ Richtig ist: <b>${current.a}</b>`;
-
-  stats[current.topic].done++;
-  if (ok) stats[current.topic].correct++;
-
-  dailyDone++;
-  localStorage.setItem('dailyDone', dailyDone);
-  localStorage.setItem('stats', JSON.stringify(stats));
-  updateUI();
+function select(val,el){
+ if(checked) return;
+ checked=true;
+ const ok=val===current.a;
+ el.classList.add(ok?'correct':'wrong');
+ document.getElementById('feedback').innerHTML=ok?
+  '✔ Richtig':`✘ Richtig ist: <b>${current.a}</b>`;
+ stats[current.topic].done++;
+ if(ok) stats[current.topic].correct++;
+ dailyDone++;
+ localStorage.setItem('dailyDone',dailyDone);
+ localStorage.setItem('stats',JSON.stringify(stats));
+ updateUI();
 }
-
-/* ===== ENTER KEY ===== */
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    if (!checked) return;
-    render();
-  }
-});
 
 /* ===== UI ===== */
-function updateUI() {
-  document.getElementById('dailyDone').innerText = dailyDone;
-  document.getElementById('dailyBar').style.width = Math.min(100, (dailyDone / 20) * 100) + '%';
-  document.getElementById('streak').innerText = streak;
-
-  const box = document.getElementById('progressBox');
-  box.innerHTML = '';
-  for (let t in stats) {
-    const s = stats[t];
-    const p = s.done ? Math.round((s.correct / s.done) * 100) : 0;
-    box.innerHTML += `<div>${t} (${p}%)</div><div class="progress"><div style="width:${p}%"></div></div>`;
-  }
+function updateUI(){
+ document.getElementById('dailyDone').innerText=dailyDone;
+ document.getElementById('dailyBar').style.width=Math.min(100,dailyDone/20*100)+'%';
+ const box=document.getElementById('progressBox');
+ box.innerHTML='';
+ for(let t in stats){
+  const s=stats[t];
+  const p=s.done?Math.round(s.correct/s.done*100):0;
+  box.innerHTML+=`<div>${t} (${p}%)</div><div class="progress"><div style="width:${p}%"></div></div>`;
+ }
 }
+
+/* ===== ENTER / NEXT ===== */
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&checked)render()});
+document.getElementById('nextBtn').onclick=render;
 
 /* ===== INIT ===== */
 updateUI();
 render();
-document.getElementById('nextBtn').onclick = render;
 </script>
 </body>
 </html>
