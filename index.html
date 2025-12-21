@@ -2,247 +2,189 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>German Trainer – Daily 20 Exercises</title>
+<title>German Trainer – Adaptive</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root {
-  --bg:#f0f4f8; --card:#ffffff; --text:#222; --primary:#2563eb;
-  --correct:#16a34a; --wrong:#dc2626; --grammar:#3b82f6; --writing:#8b5cf6;
-  --vocab:#10b981; --articles:#f97316; --reading:#14b8a6;
-}
-body{margin:0;font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
-header{background:linear-gradient(90deg,#2563eb,#3b82f6);color:white;padding:20px;text-align:center;box-shadow:0 4px 8px rgba(0,0,0,0.15);}
-header h1{margin:0;font-size:2em;} header p{margin:4px;font-size:1em;}
-main{max-width:900px;margin:auto;padding:20px;}
-.card{background:var(--card);padding:20px;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,0.1);margin-bottom:20px;transition:transform .3s, box-shadow .3s;}
-.card:hover{transform:translateY(-5px);box-shadow:0 12px 25px rgba(0,0,0,0.2);}
-button{padding:12px 18px;background:var(--primary);color:white;border:none;border-radius:10px;cursor:pointer;margin-top:12px;font-weight:bold;transition:background .3s, transform .2s;}
-button:hover{background:#1d4ed8;transform:scale(1.05);}
-.choice{display:block;margin:10px 0;padding:12px;background:#e5e7eb;border-radius:8px;cursor:pointer;transition: all .2s;}
-.choice:hover{background:#dbeafe; transform:scale(1.03);}
-input{width:100%;padding:10px;margin-top:10px;font-size:16px;border-radius:6px;border:1px solid #ccc;}
-#feedback{margin-top:12px;font-weight:bold;font-size:1.1em;transition:all .3s;}
-#dailyBarContainer{background:#e5e7eb;border-radius:10px;overflow:hidden;height:16px;margin-top:8px;}
-#dailyBar{height:16px;width:0%;background:var(--primary);transition:width .4s;}
-.level{display:inline-block;padding:2px 10px;border-radius:12px;color:white;margin-left:8px;font-size:0.85em;}
-.topic-icon{margin-right:8px;}
-.correct-choice{background:var(--correct)!important;color:white;transform:scale(1.05);}
-.wrong-choice{background:var(--wrong)!important;color:white;transform:scale(1.05);}
+body{font-family:system-ui;background:#f3f4f6;margin:0}
+header{background:#1e40af;color:white;padding:20px;text-align:center}
+main{max-width:900px;margin:auto;padding:20px}
+.card{background:white;padding:20px;border-radius:16px;margin-bottom:20px;box-shadow:0 10px 25px rgba(0,0,0,.1)}
+h2,h3{margin-top:0}
+.choice{padding:12px;margin:8px 0;background:#e5e7eb;border-radius:10px;cursor:pointer}
+.choice:hover{background:#dbeafe}
+.correct{background:#16a34a;color:white}
+.wrong{background:#dc2626;color:white}
+button{padding:12px 20px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:600;cursor:pointer}
+.progress{background:#e5e7eb;border-radius:10px;height:14px;margin-bottom:10px}
+.progress div{height:14px;border-radius:10px;background:#16a34a}
+.badge{display:inline-block;padding:4px 10px;border-radius:12px;background:#e0e7ff;color:#1e40af;font-size:12px}
 </style>
 </head>
 <body>
 <header>
 <h1>🇩🇪 German Trainer</h1>
-<p>Grammar • Vocabulary • Articles • Writing • Reading Comprehension</p>
+<p>Adaptive • Correct German • No Repetition</p>
 </header>
 <main>
-<div id="dailyCard" class="card">
-<h3>🔥 Daily Progress</h3>
-<div id="dailyBarContainer"><div id="dailyBar"></div></div>
-<p id="dailyText"></p>
+
+<div class="card">
+<h3>📅 Daily Goal</h3>
+<p><span id="dailyDone">0</span> / 20 exercises completed</p>
+<div class="progress"><div id="dailyBar" style="width:0%"></div></div>
+<p>🔥 Streak: <span id="streak">0</span> days</p>
 </div>
+
 <div class="card">
 <h3>📊 Topic Progress</h3>
-<div id="grammarBars"></div>
+<div id="progressBox"></div>
 </div>
+
 <div class="card">
-<h2 id="meta"></h2>
-<div id="content"></div>
+<span class="badge" id="level">B1</span>
+<span class="badge" id="xpBadge">XP: 0</span>
+<h2 id="question"></h2>
+<div id="choices"></div>
 <div id="feedback"></div>
 <button id="nextBtn">Next</button>
 </div>
+
+</main>
 <script>
-/* ================= STATE ================= */
-let current=null, consecutiveCorrect=0, enterMode="check";
-let stats=JSON.parse(localStorage.getItem("stats"))||{};
-let daily=JSON.parse(localStorage.getItem("daily"))||{date:new Date().toISOString().split("T")[0], done:0, streak:0, lastDate:null, todayExercises:[]};
-const todayKey=new Date().toISOString().split("T")[0];
-if(daily.date!==todayKey){
-  daily.streak=(daily.lastDate===new Date(Date.now()-86400000).toISOString().split("T")[0])? daily.streak+1:1;
-  daily.lastDate=daily.date; daily.date=todayKey; daily.done=0; daily.todayExercises=[];
+/* ===== STATE ===== */
+let checked = false;
+let current = null;
+let dailyDone = Number(localStorage.getItem('dailyDone')) || 0;
+let lastDate = localStorage.getItem('lastDate');
+let today = new Date().toDateString();
+let streak = Number(localStorage.getItem('streak')) || 0;
+
+if (lastDate !== today) {
+  dailyDone = 0;
+  localStorage.setItem('dailyDone', 0);
+  if (lastDate) streak++;
+  localStorage.setItem('streak', streak);
+  localStorage.setItem('lastDate', today);
+  localStorage.removeItem('usedIds');
 }
 
-/* ================= DATA ================= */
-const verbs=["spielen","lernen","gehen","lesen","schreiben","arbeiten","reisen"];
-const nouns=["Haus","Schule","Hund","Katze","Buch","Auto","Straße","Baum"];
-const people=["Anna","Max","Lisa","Tom"];
-const grammarTemplates=[{template:"{person} {verb} gern {noun}, weil {reason}.",lvl:"B1"},
-{template:"Wenn {person} Zeit {verb2}, {verb3} er {noun}.",lvl:"B2"},
-{template:"Er tut so, als ob er {verb} {noun}.",lvl:"C1"}];
-const writingTemplates=[{template:"Schreibe einen Satz mit '{conjunction}' über {noun}.",lvl:"B1"},
-{template:"Schreibe einen Satz mit Konjunktiv II über {noun}.",lvl:"C1"}];
-const vocabList=[["arbeiten","to work"],["lernen","to learn"],["Haus","house"],["Katze","cat"],["Buch","book"],["essen","to eat"],["Trinken","drink"],["Auto","car"],["Straße","street"],["Baum","tree"]];
-const articlesList=[{word:"Apfel",art:"der"},{word:"Banane",art:"die"},{word:"Mädchen",art:"das"},{word:"Hund",art:"der"},{word:"Katze",art:"die"},{word:"Auto",art:"das"}];
-const readingComprehensions=[
-{text:`Anna geht morgens in die Schule. Sie liest ein Buch im Unterricht und spricht danach mit ihren Freunden auf dem Pausenhof.`,
-questions:[
-{q:"Wo geht Anna morgens hin?",options:["Schule","Park","Zuhause"],answer:"Schule"},
-{q:"Was macht Anna im Unterricht?",options:["liest ein Buch","spielt Fußball","isst"],answer:"liest ein Buch"},
-{q:"Mit wem spricht sie danach?",options:["ihren Freunden","ihren Lehrern","ihrem Hund"],answer:"ihren Freunden"}
-]},
-{text:`Max arbeitet im Büro. Er telefoniert viel und schreibt E-Mails. Mittags geht er kurz spazieren, um frische Luft zu schnappen.`,
-questions:[
-{q:"Wo arbeitet Max?",options:["im Büro","in der Schule","im Park"],answer:"im Büro"},
-{q:"Was macht er mittags?",options:["spazieren gehen","essen","lesen"],answer:"spazieren gehen"},
-{q:"Was macht Max beruflich?",options:["telefoniert und schreibt E-Mails","kocht","spielt"],answer:"telefoniert und schreibt E-Mails"}
-]}
+let usedIds = JSON.parse(localStorage.getItem('usedIds')) || [];
+
+let stats = JSON.parse(localStorage.getItem('stats')) || {
+  Articles: { done: 0, correct: 0 }
+};
+
+/* ===== SMART CONTENT POOLS ===== */
+const nouns = [
+  { w: 'Hund', a: 'der' },
+  { w: 'Apfel', a: 'der' },
+  { w: 'Baum', a: 'der' },
+  { w: 'Frau', a: 'die' },
+  { w: 'Stadt', a: 'die' },
+  { w: 'Zeit', a: 'die' },
+  { w: 'Haus', a: 'das' },
+  { w: 'Kind', a: 'das' },
+  { w: 'Auto', a: 'das' }
 ];
 
-/* ================= UTILS ================= */
-function shuffle(a){return a.sort(()=>Math.random()-0.5);}
-function saveAll(){localStorage.setItem("stats",JSON.stringify(stats));localStorage.setItem("daily",JSON.stringify(daily));}
-function getDifficulty(){if(consecutiveCorrect>=5) return "C1"; if(consecutiveCorrect>=3) return "B2"; return "B1";}
-function clearChoices(){document.querySelectorAll(".choice").forEach(c=>c.style.pointerEvents="auto");document.querySelectorAll("button").forEach(b=>b.disabled=false);}
-function generateUniqueId(prefix){return prefix+"-"+Date.now()+Math.random();}
+const subjects = ['Der Mann', 'Die Frau', 'Das Kind', 'Mein Freund', 'Meine Schwester'];
+const verbs = ['kauft', 'sieht', 'mag', 'findet', 'braucht'];
+const places = ['im Park', 'im Supermarkt', 'zu Hause', 'in der Stadt', 'am Abend'];
 
-/* ================= GENERATORS ================= */
-function generateGrammar(){
-  const lvl=getDifficulty();
-  const t=grammarTemplates.filter(g=>g.lvl===lvl)[Math.floor(Math.random()*grammarTemplates.length)];
-  const person=people[Math.floor(Math.random()*people.length)];
-  const verb=verbs[Math.floor(Math.random()*verbs.length)];
-  const verb2=verbs[Math.floor(Math.random()*verbs.length)];
-  const verb3=verbs[Math.floor(Math.random()*verbs.length)];
-  const noun=nouns[Math.floor(Math.random()*nouns.length)];
-  const reason="es regnet";
-  const q=t.template.replace("{person}",person).replace("{verb}",verb).replace("{verb2}",verb2).replace("{verb3}",verb3).replace("{noun}",noun).replace("{reason}",reason);
-  const options=shuffle([verb,verb2,verb3,verbs[Math.floor(Math.random()*verbs.length)],verbs[Math.floor(Math.random()*verbs.length)]]).slice(0,3);
-  return {id:generateUniqueId("g"),topic:"Grammar",lvl:lvl,q:q,options:options,answer:verb};
-}
-function generateWriting(){
-  const lvl=getDifficulty();
-  const t=writingTemplates[Math.floor(Math.random()*writingTemplates.length)];
-  const noun=nouns[Math.floor(Math.random()*nouns.length)];
-  const conjunction=shuffle(["weil","obwohl","damit"])[0];
-  const q=t.template.replace("{conjunction}",conjunction).replace("{noun}",noun);
-  const answer=`Ich lerne Deutsch ${conjunction} ich ${noun} habe.`;
-  const options=shuffle([answer,"Ich gehe zur Schule.","Ich spiele Fußball."]);
-  return {id:generateUniqueId("w"),topic:"Writing",lvl:lvl,prompt:q,choices:options,answer:answer};
-}
-function generateVocab(){ const v=shuffle(vocabList).slice(0,5); return {id:generateUniqueId("v"),pairs:v,topic:"Vocabulary"};}
-function generateArticle(){ const a=articlesList[Math.floor(Math.random()*articlesList.length)]; return {id:generateUniqueId("a"),word:a.word,article:a.art,topic:"Articles"};}
-function generateReading(){return {id:generateUniqueId("r"),topic:"Reading",reading:readingComprehensions[Math.floor(Math.random()*readingComprehensions.length)],questionIndex:0};}
-
-/* ================= DAILY 20 ================= */
-const DAILY_GOAL=20;
-function generateDailyExercises(){
-  daily.todayExercises=[]; let attempts=0;
-  const types=["Grammar","Writing","Vocabulary","Articles","Reading"];
-  while(daily.todayExercises.length<DAILY_GOAL && attempts<200){
-    attempts++;
-    const type=types[Math.floor(Math.random()*types.length)]; let exercise;
-    if(type==="Grammar") exercise=generateGrammar();
-    else if(type==="Writing") exercise=generateWriting();
-    else if(type==="Vocabulary") exercise=generateVocab();
-    else if(type==="Articles") exercise=generateArticle();
-    else if(type==="Reading") exercise=generateReading();
-    if(!daily.todayExercises.some(e=>e.id===exercise.id)) daily.todayExercises.push(exercise);
-  }
-  daily.done=0; saveAll(); dailyIndex=0;
-}
-let dailyIndex=0;
-
-/* ================= RENDER ================= */
-function renderExercise(){
-  clearChoices();
-  if(!daily.todayExercises || daily.todayExercises.length===0) generateDailyExercises();
-  if(dailyIndex>=daily.todayExercises.length){
-    document.getElementById("meta").innerText="🎉 Daily exercises completed!";
-    document.getElementById("content").innerHTML="";
-    document.getElementById("feedback").innerHTML="";
-    return;
-  }
-  current=daily.todayExercises[dailyIndex];
-  const meta=document.getElementById("meta"); const content=document.getElementById("content"); const fb=document.getElementById("feedback");
-  fb.innerHTML="";
-  const topicColor={"Grammar":"var(--grammar)","Writing":"var(--writing)","Vocabulary":"var(--vocab)","Articles":"var(--articles)","Reading":"var(--reading)"}[current.topic]||"var(--primary)";
-  meta.innerHTML=`<span class="topic-icon" style="color:${topicColor}">●</span>${current.topic}`;
-
-  if(current.topic==="Grammar"||current.topic==="Writing"){
-    let choices=current.options||current.choices;
-    content.innerHTML=`<p>${current.q||current.prompt}</p>`+choices.map(o=>`<div class="choice" onclick="checkChoice('${o}',this)">${o}</div>`).join("");
-  }else if(current.topic==="Vocabulary"){
-    content.innerHTML=current.pairs.map(p=>`<p>${p[0]} → ? <b>${p[1]}</b></p>`).join("");
-    consecutiveCorrect++; daily.done++; saveAll(); renderDaily();
-    dailyIndex++;
-  }else if(current.topic==="Articles"){
-    content.innerHTML=`<p>Wähle den richtigen Artikel für <b>${current.word}</b>:</p>`+["der","die","das"].map(a=>`<button onclick="checkArticle('${a}',this)">${a}</button>`).join("");
-  }else if(current.topic==="Reading"){
-    renderReadingQuestion();
-  }
-}
-function nextExercise(){dailyIndex++; renderExercise();}
-
-/* ================= CHECK FUNCTIONS ================= */
-function checkChoice(choice,el){
-  document.querySelectorAll(".choice").forEach(c=>c.style.pointerEvents="none");
-  const fb=document.getElementById("feedback"); const correct=choice===current.answer;
-  fb.style.color=correct?"green":"red"; fb.innerHTML=correct?"✔ Correct!":`✘ Correct: <b>${current.answer}</b>`;
-  correct?el.classList.add("correct-choice"):el.classList.add("wrong-choice");
-  stats[current.id]=stats[current.id]||{done:0,correct:0,wrong:0}; stats[current.id].done++; correct?stats[current.id].correct++:stats[current.id].wrong++;
-  daily.done++; saveAll(); renderDaily(); renderGrammarBars();
-  consecutiveCorrect=correct?consecutiveCorrect+1:0;
-}
-function checkArticle(article,btn){
-  document.querySelectorAll("button").forEach(b=>b.disabled=true);
-  const fb=document.getElementById("feedback"); const ok=article===current.article;
-  fb.style.color=ok?"green":"red"; fb.innerHTML=ok?"✔ Correct!":`✘ Correct: <b>${current.article}</b>`;
-  ok?btn.classList.add("correct-choice"):btn.classList.add("wrong-choice");
-  stats[current.word]=stats[current.word]||{done:0,correct:0,wrong:0}; stats[current.word].done++; ok?stats[current.word].correct++:stats[current.word].wrong++;
-  daily.done++; saveAll(); renderDaily(); consecutiveCorrect=ok?consecutiveCorrect+1:0;
+function uid(str) {
+  return btoa(unescape(encodeURIComponent(str))).slice(0, 30);
 }
 
-/* ================= READING ================= */
-function renderReadingQuestion(){
-  const meta=document.getElementById("meta"); const content=document.getElementById("content"); const fb=document.getElementById("feedback");
-  fb.innerHTML="";
-  const question=current.reading.questions[current.questionIndex];
-  content.innerHTML=`<p>${current.reading.text}</p><p><b>Frage ${current.questionIndex+1}:</b> ${question.q}</p>`+
-    question.options.map(o=>`<div class="choice" onclick="checkReading('${o}',this)">${o}</div>`).join("");
-}
-function checkReading(choice,el){
-  document.querySelectorAll(".choice").forEach(c=>c.style.pointerEvents="none");
-  const question=current.reading.questions[current.questionIndex];
-  const fb=document.getElementById("feedback"); const correct=choice===question.answer;
-  fb.style.color=correct?"green":"red"; fb.innerHTML=correct?"✔ Correct!":`✘ Correct: <b>${question.answer}</b>`;
-  correct?el.classList.add("correct-choice"):el.classList.add("wrong-choice");
-  stats[`r-${current.questionIndex}`]=stats[`r-${current.questionIndex}`]||{done:0,correct:0,wrong:0};
-  stats[`r-${current.questionIndex}`].done++; correct?stats[`r-${current.questionIndex}`].correct++:stats[`r-${current.questionIndex}`].wrong++;
-  daily.done++; saveAll(); renderDaily(); renderGrammarBars();
-  consecutiveCorrect=correct?consecutiveCorrect+1:0;
-  current.questionIndex++;
-  setTimeout(()=>{if(current.questionIndex<current.reading.questions.length){renderReadingQuestion();}else{nextExercise();}},1000);
+/* ===== GENERATOR (NO REPETITION) ===== */
+function generateExercise() {
+  let ex, id;
+  let tries = 0;
+
+  do {
+    tries++;
+    const n = nouns[Math.floor(Math.random() * nouns.length)];
+    const s = subjects[Math.floor(Math.random() * subjects.length)];
+    const v = verbs[Math.floor(Math.random() * verbs.length)];
+    const p = places[Math.floor(Math.random() * places.length)];
+
+    ex = {
+      topic: 'Articles',
+      q: `${s} ${v} ___ ${n.w} ${p}.`,
+      options: shuffle(['der', 'die', 'das']),
+      a: n.a
+    };
+
+    id = uid(ex.q + ex.a);
+  } while (usedIds.includes(id) && tries < 100);
+
+  usedIds.push(id);
+  localStorage.setItem('usedIds', JSON.stringify(usedIds));
+  ex.id = id;
+  return ex;
 }
 
-/* ================= DASHBOARD ================= */
-function renderGrammarBars(){
-  const box=document.getElementById("grammarBars"); box.innerHTML="";
-  const topicStats={};
-  for(let key in stats){
-    const s=stats[key];
-    const topic=key.startsWith("g-")?"Grammar":key.startsWith("w-")?"Writing":key.startsWith("v-")?"Vocabulary":key.startsWith("a-")?"Articles":key.startsWith("r-")?"Reading":key;
-    if(!topicStats[topic]) topicStats[topic]={done:0,correct:0};
-    topicStats[topic].done+=s.done||0; topicStats[topic].correct+=s.correct||0;
-  }
-  for(let t in topicStats){
-    const s=topicStats[t]; const p=s.done?s.correct/s.done*100:0;
-    let color={"Grammar":"var(--grammar)","Writing":"var(--writing)","Vocabulary":"var(--vocab)","Articles":"var(--articles)","Reading":"var(--reading)"}[t]||"var(--primary)";
-    box.innerHTML+=`<div>${t} (${Math.round(p)}%)</div><div class="progress" style="background:#e5e7eb;border-radius:10px;height:14px;margin-bottom:8px;"><div style="width:${p}%;height:14px;background:${color};border-radius:10px;"></div></div>`;
-  }
-}
-function renderDaily(){
-  const pct=Math.min(100,Math.round(daily.done/DAILY_GOAL*100));
-  document.getElementById("dailyBar").style.width=pct+"%";
-  document.getElementById("dailyText").innerText=`${daily.done}/${DAILY_GOAL} exercises • 🔥 ${daily.streak} day streak`;
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
 }
 
-/* ================= EVENTS ================= */
-document.getElementById("nextBtn").addEventListener("click",()=>{nextExercise();});
-document.addEventListener("keydown",(e)=>{
-  if(e.key==="Enter"){
-    if(enterMode==="check"){document.querySelector(".choice")?.click(); enterMode="next";}
-    else{nextExercise(); enterMode="check";}
+/* ===== RENDER ===== */
+function render() {
+  checked = false;
+  current = generateExercise();
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('question').innerText = current.q;
+  document.getElementById('choices').innerHTML = current.options
+    .map(o => `<div class="choice" onclick="select('${o}',this)">${o}</div>`)
+    .join('');
+}
+
+/* ===== CHECK ===== */
+function select(val, el) {
+  if (checked) return;
+  checked = true;
+
+  const ok = val === current.a;
+  el.classList.add(ok ? 'correct' : 'wrong');
+
+  document.getElementById('feedback').innerHTML = ok
+    ? '✔ Richtig'
+    : `✘ Richtig ist: <b>${current.a}</b>`;
+
+  stats[current.topic].done++;
+  if (ok) stats[current.topic].correct++;
+
+  dailyDone++;
+  localStorage.setItem('dailyDone', dailyDone);
+  localStorage.setItem('stats', JSON.stringify(stats));
+  updateUI();
+}
+
+/* ===== ENTER KEY ===== */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (!checked) return;
+    render();
   }
 });
 
-/* =================*
+/* ===== UI ===== */
+function updateUI() {
+  document.getElementById('dailyDone').innerText = dailyDone;
+  document.getElementById('dailyBar').style.width = Math.min(100, (dailyDone / 20) * 100) + '%';
+  document.getElementById('streak').innerText = streak;
+
+  const box = document.getElementById('progressBox');
+  box.innerHTML = '';
+  for (let t in stats) {
+    const s = stats[t];
+    const p = s.done ? Math.round((s.correct / s.done) * 100) : 0;
+    box.innerHTML += `<div>${t} (${p}%)</div><div class="progress"><div style="width:${p}%"></div></div>`;
+  }
+}
+
+/* ===== INIT ===== */
+updateUI();
+render();
+document.getElementById('nextBtn').onclick = render;
+</script>
+</body>
+</html>
